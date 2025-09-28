@@ -117,16 +117,14 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
           getImage: getImageFunction, // Add Astro's getImage integration
         });
 
-        // Process images first - transform to import syntax for Astro asset pipeline
-        const { processedContent, images, imageImports } = await transformImagesForAstro(parsed.content, id);
-
-        const sourceHash = generateSourceHash(processedContent, theme, config);
+        // No image processing - use original content as-is
+        const sourceHash = generateSourceHash(parsed.content, theme, config);
 
         // Use the theme from frontmatter if specified
         const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string) : theme;
 
-        // Run Marp CLI to process the image-processed markdown
-        const marpResult = await runMarpCli(processedContent, {
+        // Run Marp CLI with original content - no processing
+        const marpResult = await runMarpCli(parsed.content, {
           theme: effectiveTheme,
           html: true,
         });
@@ -148,53 +146,36 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
           filePath: id,
           updatedAt: new Date().toISOString(),
           sourceHash,
-          images,
+          images: [],
           frontmatter: parsed.frontmatter,
         };
 
         const virtualModuleCode = `
 export const html = ${JSON.stringify(marpResult.html)};
 export const meta = ${JSON.stringify(meta)};
-export const raw = ${JSON.stringify(processedContent)};
+export const raw = ${JSON.stringify(parsed.content)};
 `;
 
         virtualModules.set(virtualModuleId, virtualModuleCode);
 
-        // Post-process HTML to replace image placeholders with optimized imports
-        let processedHtml = marpResult.html;
-        for (const image of images) {
-          if (image.placeholder) {
-            processedHtml = processedHtml.replace(
-              new RegExp(`ASTRO_IMAGE_${image.importName}`, 'g'),
-              `\${${image.importName}.src}`
-            );
-          }
-        }
-
-        // Return proper Astro component exports following astro-typst pattern
+        // Return proper Astro component exports with raw Marp HTML - no processing
         const componentCode = `
 import { createComponent, render, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
 import { readFileSync } from "node:fs";
-${imageImports.join('\n')}
 
 export const name = "MarpComponent";
 export const frontmatter = ${JSON.stringify(parsed.frontmatter)};
 export const file = ${JSON.stringify(id)};
 export const url = ${JSON.stringify(pathToFileURL(id).href)};
 
-const htmlTemplate = ${JSON.stringify(processedHtml)};
+const rawMarpHtml = ${JSON.stringify(marpResult.html)};
 
 export function rawContent() {
     return readFileSync(file, 'utf-8');
 }
 
 export function compiledContent() {
-    // Replace template literals with actual values and return complete HTML
-    let finalHtml = htmlTemplate;
-    ${images.map(img => img.placeholder ?
-      `finalHtml = finalHtml.replace(/ASTRO_IMAGE_${img.importName}/g, ${img.importName}.src);` : ''
-    ).filter(Boolean).join('\n    ')}
-    return finalHtml;
+    return rawMarpHtml;
 }
 
 export function getHeadings() {
@@ -202,18 +183,7 @@ export function getHeadings() {
 }
 
 export const Content = createComponent(async (result, _props, slots) => {
-    const { layout, ...content } = frontmatter;
-    const slot = await slots?.default?.();
-    content.file = file;
-    content.url = url;
-
-    // Replace template literals with actual values at render time
-    let finalHtml = htmlTemplate;
-    ${images.map(img => img.placeholder ?
-      `finalHtml = finalHtml.replace(/ASTRO_IMAGE_${img.importName}/g, ${img.importName}.src);` : ''
-    ).filter(Boolean).join('\n    ')}
-
-    return unescapeHTML(finalHtml);
+    return unescapeHTML(rawMarpHtml);
 });
 
 export const html = Content;
