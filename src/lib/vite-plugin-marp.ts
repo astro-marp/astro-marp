@@ -9,6 +9,7 @@ function isMarpFile(id: string) {
   return /\.marp$/.test(id);
 }
 
+
 export function createViteMarpPlugin(config: MarpConfig): Plugin {
   return {
     name: 'vite-plugin-marp',
@@ -30,8 +31,8 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
         // Use the theme from frontmatter if specified
         const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string) : theme;
 
-        // Run Marp CLI to process the markdown
-        const marpResult = await runMarpCli(parsed.content, {
+        // Run Marp CLI to process the markdown - pass complete file with frontmatter for headingDivider processing
+        const marpResult = await runMarpCli(code, {
           theme: effectiveTheme,
           html: true,
         });
@@ -40,9 +41,10 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
           console.warn(`[astro-marp] Warning processing ${id}:`, marpResult.error);
         }
 
-        // Return proper Astro component exports following astro-typst pattern
+        // Complete unmodified Marp CLI output - following exact astro-typst pattern
         const componentCode = `
-import { createComponent, render, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
+import { createComponent, render, renderJSX, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
+import { AstroJSX, jsx } from 'astro/jsx-runtime';
 import { readFileSync } from "node:fs";
 
 export const name = "MarpComponent";
@@ -68,6 +70,7 @@ export const Content = createComponent(async (result, _props, slots) => {
     const slot = await slots?.default?.();
     content.file = file;
     content.url = url;
+    // Return unescaped HTML exactly like astro-typst
     return render\`\${unescapeHTML(compiledContent())}\`;
 });
 
@@ -81,12 +84,27 @@ export default Content;
       } catch (error) {
         console.error('[astro-marp] Error transforming .marp file:', error);
 
-        // Return error component following the same pattern
+        // Return error following the same pattern
+        const errorHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Marp Processing Error</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .error { color: red; background: #ffeaea; padding: 15px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="error">
+        <h1>Marp Processing Error</h1>
+        <p>${String(error)}</p>
+    </div>
+</body>
+</html>`;
         const errorCode = `
-import { createComponent, render, unescapeHTML } from "astro/runtime/server/index.js";
-
 export const name = "MarpErrorComponent";
-export const html = "<div class='marp-error'><h1>Marp Processing Error</h1><p>" + ${JSON.stringify(String(error))} + "</p></div>";
+export const marpHtml = ${JSON.stringify(errorHtml)};
+export const html = marpHtml;
 export const frontmatter = {};
 export const file = ${JSON.stringify(id)};
 export const url = ${JSON.stringify(pathToFileURL(id).href)};
@@ -96,18 +114,16 @@ export function rawContent() {
 }
 
 export function compiledContent() {
-    return html;
+    return marpHtml;
 }
 
 export function getHeadings() {
     return [];
 }
 
-export const Content = createComponent(async (result, _props, slots) => {
-    return render\`\${unescapeHTML(html)}\`;
-});
+export const Content = marpHtml;
 
-export default Content;
+export default marpHtml;
 `;
 
         return {

@@ -1,4 +1,4 @@
-import type { AstroIntegration, AstroRenderer } from 'astro';
+import type { AstroIntegration } from 'astro';
 import type { MarpConfig } from './types.js';
 import { resolveTheme, validateTheme } from './lib/theme-resolver.js';
 import { createViteMarpPlugin } from './lib/vite-plugin-marp.js';
@@ -18,19 +18,11 @@ interface SetupHookParams {
     handlePropagation?: boolean;
     contentModuleTypes?: string;
   }) => void;
-  addRenderer: (renderer: AstroRenderer) => void;
   updateConfig: (config: any) => void;
   logger: any;
   [key: string]: any;
 }
 
-function getRenderer(): AstroRenderer {
-  const serverEntrypoint = "astro-marp/dist/renderer/index.js";
-  return {
-    name: "astro:jsx",
-    serverEntrypoint,
-  };
-}
 
 export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
   const config: Required<MarpConfig> = {
@@ -42,7 +34,7 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
     name: 'astro-marp',
     hooks: {
       'astro:config:setup': (options) => {
-        const { addPageExtension, addContentEntryType, addRenderer, updateConfig, logger } = options as unknown as SetupHookParams;
+        const { addPageExtension, addContentEntryType, updateConfig, logger } = options as unknown as SetupHookParams;
 
         logger.info('Setting up Marp integration...');
 
@@ -52,9 +44,6 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
           config.defaultTheme = 'default';
         }
 
-        // Add renderer for .marp files
-        addRenderer(getRenderer());
-        logger.info('Added Marp renderer');
 
         // TODO: Re-enable page extension after fixing Vite plugin compatibility
         // addPageExtension('.marp');
