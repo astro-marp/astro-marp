@@ -213,7 +213,7 @@ export const Content = createComponent(async (result, _props, slots) => {
       `finalHtml = finalHtml.replace(/ASTRO_IMAGE_${img.importName}/g, ${img.importName}.src);` : ''
     ).filter(Boolean).join('\n    ')}
 
-    return render\`<div>\${unescapeHTML(finalHtml)}</div>\`;
+    return unescapeHTML(finalHtml);
 });
 
 export const html = Content;
