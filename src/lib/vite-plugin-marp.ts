@@ -189,7 +189,12 @@ export function rawContent() {
 }
 
 export function compiledContent() {
-    return htmlTemplate;
+    // Replace template literals with actual values and return complete HTML
+    let finalHtml = htmlTemplate;
+    ${images.map(img => img.placeholder ?
+      `finalHtml = finalHtml.replace(/ASTRO_IMAGE_${img.importName}/g, ${img.importName}.src);` : ''
+    ).filter(Boolean).join('\n    ')}
+    return finalHtml;
 }
 
 export function getHeadings() {
@@ -205,7 +210,7 @@ export const Content = createComponent(async (result, _props, slots) => {
     // Replace template literals with actual values at render time
     let finalHtml = htmlTemplate;
     ${images.map(img => img.placeholder ?
-      `finalHtml = finalHtml.replace(/\\$\\{${img.importName}\\.src\\}/g, ${img.importName}.src);` : ''
+      `finalHtml = finalHtml.replace(/ASTRO_IMAGE_${img.importName}/g, ${img.importName}.src);` : ''
     ).filter(Boolean).join('\n    ')}
 
     return render\`<div>\${unescapeHTML(finalHtml)}</div>\`;
