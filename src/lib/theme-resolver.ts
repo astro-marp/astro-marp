@@ -36,14 +36,19 @@ export function resolveTheme(themeName: string): string {
     return themeName;
   }
 
-  // TEMPORARY: For custom themes that are causing CSS import issues,
-  // fall back to built-in themes until we resolve the Marp CLI theme handling
+  // Handle built-in am_* themes with file paths
   if (['am_blue', 'am_brown', 'am_dark', 'am_green', 'am_purple', 'am_red'].includes(themeName)) {
-    console.warn(`[astro-marp] Custom theme "${themeName}" temporarily disabled, using "gaia"`);
-    return 'gaia';
+    const themePath = resolve(THEMES_DIR, `${themeName}.scss`);
+    if (existsSync(themePath)) {
+      console.log(`[astro-marp] Using built-in theme: ${themeName} at ${themePath}`);
+      return themePath;
+    } else {
+      console.warn(`[astro-marp] Built-in theme "${themeName}" not found at ${themePath}, falling back to "gaia"`);
+      return 'gaia';
+    }
   }
 
-  // Handle absolute paths
+  // Handle absolute paths (for future extensibility)
   if (themeName.startsWith('/') && existsSync(themeName)) {
     return themeName;
   }
