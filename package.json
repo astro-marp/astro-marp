@@ -1,0 +1,58 @@
+{
+  "name": "astro-marp",
+  "version": "0.1.0",
+  "description": "Astro integration for Marp markdown presentations with content collections support",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./dist/renderer/index.js": "./dist/renderer/index.js"
+  },
+  "files": [
+    "dist",
+    "src/themes",
+    "themes"
+  ],
+  "keywords": [
+    "astro",
+    "astro-integration",
+    "marp",
+    "markdown",
+    "presentations",
+    "slides"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "echo \"Test via test-astro-project\"",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "astro": "^5.13.0"
+  },
+  "dependencies": {
+    "@marp-team/marp-cli": "^4.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "astro": "^5.13.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/astro-marp.git"
+  },
+  "license": "MIT",
+  "author": "Your Name"
+}

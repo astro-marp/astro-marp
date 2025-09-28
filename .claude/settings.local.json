@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__exa__get_code_context_exa",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "WebFetch(domain:docs.astro.build)",
+      "mcp__exa__web_search_exa",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "mcp__deepwiki__read_wiki_structure",
+      "mcp__deepwiki__read_wiki_contents",
+      "mcp__deepwiki__ask_question"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
