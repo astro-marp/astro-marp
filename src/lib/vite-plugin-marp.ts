@@ -208,7 +208,7 @@ export const Content = createComponent(async (result, _props, slots) => {
       `finalHtml = finalHtml.replace(/\\$\\{${img.importName}\\.src\\}/g, ${img.importName}.src);` : ''
     ).filter(Boolean).join('\n    ')}
 
-    return render\`<div set:html=\${finalHtml}></div>\`;
+    return render\`<div>\${unescapeHTML(finalHtml)}</div>\`;
 });
 
 export const html = Content;
@@ -248,7 +248,7 @@ export function getHeadings() {
 }
 
 export const Content = createComponent(async (result, _props, slots) => {
-    return render\`<div set:html=\${htmlContent}></div>\`;
+    return render\`<div>\${unescapeHTML(htmlContent)}</div>\`;
 });
 
 export const html = Content;
