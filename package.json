@@ -25,7 +25,7 @@
     "slides"
   ],
   "scripts": {
-    "build": "tsc && cp -r src/themes dist/",
+    "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src --ext .ts",
     "test": "echo \"Test via test-astro-project\"",
