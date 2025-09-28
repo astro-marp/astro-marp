@@ -11,7 +11,14 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "mcp__deepwiki__read_wiki_structure",
       "mcp__deepwiki__read_wiki_contents",
-      "mcp__deepwiki__ask_question"
+      "mcp__deepwiki__ask_question",
+      "mcp__playwright__browser_navigate",
+      "Bash(npm run dev:*)",
+      "mcp__playwright__browser_click",
+      "Bash(npm run build:*)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_press_key",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
