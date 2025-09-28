@@ -14,8 +14,7 @@
   },
   "files": [
     "dist",
-    "src/themes",
-    "themes"
+    "src/themes"
   ],
   "keywords": [
     "astro",
@@ -26,7 +25,7 @@
     "slides"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/themes dist/",
     "dev": "tsc --watch",
     "lint": "eslint src --ext .ts",
     "test": "echo \"Test via test-astro-project\"",
