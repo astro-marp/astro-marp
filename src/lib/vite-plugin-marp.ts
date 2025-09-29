@@ -4,7 +4,7 @@ import { parseMarpFile } from './marp-parser.js';
 import { resolveTheme } from './theme-resolver.js';
 import { runMarpCli, generateSourceHash } from './marp-runner.js';
 import { pathToFileURL } from 'node:url';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { extname, resolve, dirname, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -15,6 +15,16 @@ function isMarpFile(id: string) {
 function isLocalImage(src: string): boolean {
   // Check if it's a local image (not http/https/data URL)
   return !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:');
+}
+
+// Helper function to normalize paths like Astro's fileURLToNormalizedPath
+function filePathToNormalizedPath(filePath: string): string {
+  return filePath.replace(/\\/g, '/');
+}
+
+// Helper function to add forward slash
+function prependForwardSlash(path: string): string {
+  return path.startsWith('/') ? path : '/' + path;
 }
 
 async function processImagesInMarkdown(
@@ -38,43 +48,73 @@ async function processImagesInMarkdown(
       continue;
     }
 
-
     const imagePromise = (async () => {
       try {
         // Resolve the image path relative to the .marp file
         const imagePath = resolve(marpDir, src);
-        // Follow Astro's emitESMImage pattern for unified build/serve mode handling
+
+        // Check if file exists
+        if (!existsSync(imagePath)) {
+          console.warn(`[astro-marp] Image file not found: ${imagePath}`);
+          return {
+            match,
+            replacement: fullMatch, // Keep original if file doesn't exist
+          };
+        }
+
+        // Follow Astro's emitESMImage pattern exactly
         let isBuild = typeof emitFile === 'function';
-        let optimizedSrc = src; // Default to original path
+        let optimizedSrc: string = '';
 
         if (isBuild) {
           try {
-            // Attempt to emit file for build mode
+            // Build mode: emit file and use Astro asset placeholder
             const imageBuffer = readFileSync(imagePath);
             const fileExtension = extname(imagePath);
             const baseName = basename(imagePath, fileExtension);
             const contentHash = createHash('md5').update(imageBuffer).digest('hex').slice(0, 8);
             const fileName = `${baseName}_${contentHash}${fileExtension}`;
 
-            // Emit the file and get the reference ID
-            const referenceId = emitFile!({
+            // Emit the file and get the reference handle
+            const handle = emitFile!({
               type: 'asset',
               fileName: `_astro/${fileName}`,
               source: imageBuffer,
             });
 
-            // Create Astro-style asset placeholder (will be resolved at runtime)
-            optimizedSrc = `__ASTRO_ASSET_IMAGE__${referenceId}__`;
+            // Check if handle is valid - empty handle means dev mode
+            if (handle && handle.trim() !== '') {
+              // True build mode: use Astro's asset placeholder pattern
+              optimizedSrc = `__ASTRO_ASSET_IMAGE__${handle}__`;
+              console.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
+            } else {
+              // Dev mode: emitFile returns empty handle
+              console.debug(`[astro-marp] Dev mode detected: emitFile returned empty handle for ${src}`);
+              isBuild = false;
+            }
           } catch (error) {
-            // If emitFile fails (e.g., in serve mode), fall back to dev mode
-            console.debug(`[astro-marp] emitFile failed for ${src}, using dev mode path:`, error);
+            // If emitFile fails, fall back to dev mode
+            console.debug(`[astro-marp] emitFile failed for ${src}, falling back to dev mode:`, error);
             isBuild = false;
           }
         }
 
         if (!isBuild) {
-          // Development mode: use original relative path or file:// URL
-          optimizedSrc = src;
+          // Development mode: use Astro's /@fs pattern with metadata
+          const url = pathToFileURL(imagePath);
+
+          // Read image metadata for query params (following Astro's pattern)
+          const imageBuffer = readFileSync(imagePath);
+          // Basic image metadata - simplified version
+          const format = extname(imagePath).slice(1).toLowerCase();
+
+          // Add metadata query params like Astro does
+          url.searchParams.append('origFormat', format);
+          url.searchParams.append('astroMarpProcessed', 'true');
+
+          // Use Astro's /@fs pattern
+          optimizedSrc = `/@fs${prependForwardSlash(filePathToNormalizedPath(url.pathname + url.search))}`;
+          console.debug(`[astro-marp] Dev mode: using /@fs pattern for ${src}: ${optimizedSrc}`);
         }
 
         return {

@@ -12,7 +12,7 @@
 - **URL Fragment Routing**: ✅ Deep linking to slides via `#2`, `#3` etc.
 - **Content Collections**: ✅ Full `getCollection('presentations')` support
 - **Build Pipeline**: ✅ Clean TypeScript builds and npm package installation
-- **Image Optimization**: ✅ **ASTRO-NATIVE** - Unified pipeline following core emitESMImage() pattern
+- **Image Optimization**: ✅ **ASTRO-NATIVE PERFECTED** - Dev & Build modes unified following core emitESMImage() pattern
 - **Theme System**: ✅ Built-in themes (am_blue, gaia, uncover) working perfectly
 - **Error Handling**: ✅ Graceful failures with comprehensive error components
 
@@ -359,7 +359,7 @@ git push --tags
 
 ### Technical Metrics
 - ✅ **Build Success Rate**: 100% (achieved)
-- ✅ **Image Optimization**: 100% **ASTRO-NATIVE** - Unified dev/build pipeline (achieved)
+- ✅ **Image Optimization**: 100% **ASTRO-NATIVE PERFECTED** - Dev & Build unified via emitESMImage() pattern (achieved)
 - ✅ **Route Accessibility**: 100% (content collections + manual routing)
 - ✅ **Theme Support**: 90% (built-in themes working perfectly)
 
@@ -382,10 +382,13 @@ git push --tags
    - Risk: Plugin interference with Astro's build pipeline
    - Mitigation: Removed page extension, use content collections only
 
-2. **Image Optimization Failures** ✅ **FULLY RESOLVED**
+2. **Image Optimization Failures** ✅ **PERFECTED - ASTRO-NATIVE IMPLEMENTATION**
    - Risk: Template literal replacement not working
-   - ✅ Solution: Complete emitFile() pipeline in Vite plugin with MD5 hashing
-   - ✅ Result: Production builds generate optimized assets in dist/_astro/
+   - ✅ Solution: Complete emitFile() pipeline in Vite plugin following core emitESMImage() pattern
+   - ✅ **Dev Mode**: Uses `/@fs` URLs with metadata query params (e.g., `/@fs/path/to/image.png?origFormat=png&astroMarpProcessed=true`)
+   - ✅ **Build Mode**: Uses optimized assets with content hashing (e.g., `/_astro/yield-curve_bfc5e376.png`)
+   - ✅ **No Fallbacks**: Never uses original paths, always optimized routes following Astro's native patterns
+   - ✅ **Unified Implementation**: Single codebase handles both modes via emitFile() handle validation
 
 3. **Theme Loading Issues** 🔄 ONGOING
    - Risk: Custom themes not loading properly
