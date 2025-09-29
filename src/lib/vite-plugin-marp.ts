@@ -31,7 +31,8 @@ async function processImagesInMarkdown(
   markdown: string,
   marpFilePath: string,
   emitFile?: (options: { type: 'asset'; fileName: string; source: Buffer | string }) => string,
-  isProduction: boolean = false
+  isProduction: boolean = false,
+  logger?: any
 ): Promise<string> {
   const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
   let processedMarkdown = markdown;
@@ -56,7 +57,7 @@ async function processImagesInMarkdown(
 
         // Check if file exists
         if (!existsSync(imagePath)) {
-          console.warn(`[astro-marp] Image file not found: ${imagePath}`);
+          logger.warn(`[astro-marp] Image file not found: ${imagePath}`);
           return {
             match,
             replacement: fullMatch, // Keep original if file doesn't exist
@@ -84,7 +85,7 @@ async function processImagesInMarkdown(
 
           // Use Astro's asset placeholder pattern
           optimizedSrc = `__ASTRO_ASSET_IMAGE__${handle}__`;
-          //console.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
+          logger.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
         }
 
         if (!isBuild) {
@@ -102,7 +103,7 @@ async function processImagesInMarkdown(
 
           // Use Astro's /@fs pattern
           optimizedSrc = `/@fs${prependForwardSlash(filePathToNormalizedPath(url.pathname + url.search))}`;
-          //console.debug(`[astro-marp] Dev mode: using /@fs pattern for ${src}: ${optimizedSrc}`);
+          logger.debug(`[astro-marp] Dev mode: using /@fs pattern for ${src}: ${optimizedSrc}`);
         }
 
         return {
@@ -110,7 +111,7 @@ async function processImagesInMarkdown(
           replacement: `<img src="${optimizedSrc}" alt="${alt}" />`,
         };
       } catch (error) {
-        console.warn(`[astro-marp] Failed to process image ${src}:`, error);
+        logger.warn(`[astro-marp] Failed to process image ${src}:`, error);
         // Fallback to original markdown
         return {
           match,
@@ -136,7 +137,7 @@ async function processImagesInMarkdown(
 }
 
 
-export function createViteMarpPlugin(config: MarpConfig): Plugin {
+export function createViteMarpPlugin(config: MarpConfig, logger?: any): Plugin {
   let isProduction = false;
   return {
     name: 'vite-plugin-marp',
@@ -146,7 +147,7 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
     },
     load(id) {
       if (!isMarpFile(id)) return;
-      //console.debug(`[vite-plugin-marp] Loading id: ${id}`);
+      logger.debug(`[vite-plugin-marp] Loading id: ${id}`);
     },
 
     async transform(code: string, id: string) {
@@ -154,22 +155,23 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
 
       try {
         const parsed = await parseMarpFile(code);
-        const theme = resolveTheme(config.defaultTheme || 'am_blue');
+        const theme = resolveTheme(config.defaultTheme || 'am_blue', logger);
         const sourceHash = generateSourceHash(code, theme, config);
 
         // Use the theme from frontmatter if specified
-        const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string) : theme;
+        const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string, logger) : theme;
 
         // Process images in the markdown before Marp CLI
-        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this), isProduction);
+        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this), isProduction, logger);
         // Run Marp CLI to process the processed markdown
+        logger.info(`Processing ${id}`);
         const marpResult = await runMarpCli(processedMarkdown, {
           theme: effectiveTheme,
           html: true,
         });
 
         if (marpResult.error) {
-          console.warn(`[astro-marp] Warning processing ${id}:`, marpResult.error);
+          logger.warn(`[astro-marp] Warning processing ${id}:`, marpResult.error);
         }
 
         // Use the Marp CLI output directly (it now contains __ASTRO_IMAGE__ placeholders)
@@ -216,7 +218,7 @@ export default Content;
           map: null,
         };
       } catch (error) {
-        console.error('[astro-marp] Error transforming .marp file:', error);
+        logger.error('[astro-marp] Error transforming .marp file:', error);
 
         // Return error following the same pattern
         const errorHtml = `<!DOCTYPE html>

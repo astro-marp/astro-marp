@@ -2,7 +2,6 @@ import type { AstroIntegration } from 'astro';
 import type { MarpConfig } from './types.js';
 import { resolveTheme, validateTheme } from './lib/theme-resolver.js';
 import { createViteMarpPlugin } from './lib/vite-plugin-marp.js';
-import { fileURLToPath } from 'node:url';
 
 // Non-public API types (following astro-typst pattern)
 interface SetupHookParams {
@@ -79,14 +78,14 @@ declare module 'astro:content' {
         // Add Vite plugin for transformation
         updateConfig({
           vite: {
-            plugins: [createViteMarpPlugin(config)],
+            plugins: [createViteMarpPlugin(config, logger)],
           },
         });
         logger.info('Added Vite plugin for .marp transformation');
       },
 
       'astro:config:done': ({ config: astroConfig, logger, injectTypes }) => {
-        const resolvedTheme = resolveTheme(config.defaultTheme);
+        const resolvedTheme = resolveTheme(config.defaultTheme, logger);
         logger.info(`Marp integration ready with default theme: ${resolvedTheme}`);
 
         // Inject TypeScript definitions
