@@ -12,7 +12,7 @@
 - **URL Fragment Routing**: ✅ Deep linking to slides via `#2`, `#3` etc.
 - **Content Collections**: ✅ Full `getCollection('presentations')` support
 - **Build Pipeline**: ✅ Clean TypeScript builds and npm package installation
-- **Image Optimization**: ✅ **ASTRO-NATIVE PERFECTED** - Dev & Build modes unified following core emitESMImage() pattern
+- **Image Optimization**: ✅ **ASTRO-NATIVE PERFECTED + SIMPLIFIED** - Dev & Build modes unified with optimized environment-based detection
 - **Theme System**: ✅ Built-in themes (am_blue, gaia, uncover) working perfectly
 - **Error Handling**: ✅ Graceful failures with comprehensive error components
 
@@ -359,7 +359,7 @@ git push --tags
 
 ### Technical Metrics
 - ✅ **Build Success Rate**: 100% (achieved)
-- ✅ **Image Optimization**: 100% **ASTRO-NATIVE PERFECTED** - Dev & Build unified via emitESMImage() pattern (achieved)
+- ✅ **Image Optimization**: 100% **ASTRO-NATIVE PERFECTED + SIMPLIFIED** - Dev & Build unified with optimized detection (achieved)
 - ✅ **Route Accessibility**: 100% (content collections + manual routing)
 - ✅ **Theme Support**: 90% (built-in themes working perfectly)
 
@@ -382,13 +382,14 @@ git push --tags
    - Risk: Plugin interference with Astro's build pipeline
    - Mitigation: Removed page extension, use content collections only
 
-2. **Image Optimization Failures** ✅ **PERFECTED - ASTRO-NATIVE IMPLEMENTATION**
+2. **Image Optimization Failures** ✅ **PERFECTED - ASTRO-NATIVE + SIMPLIFIED DETECTION**
    - Risk: Template literal replacement not working
-   - ✅ Solution: Complete emitFile() pipeline in Vite plugin following core emitESMImage() pattern
+   - ✅ Solution: Complete emitFile() pipeline with optimized environment-based detection (inspired by astro-typst)
+   - ✅ **Detection**: `import.meta.env.PROD && typeof emitFile === 'function'` - simple, reliable, no complex fallbacks
    - ✅ **Dev Mode**: Uses `/@fs` URLs with metadata query params (e.g., `/@fs/path/to/image.png?origFormat=png&astroMarpProcessed=true`)
    - ✅ **Build Mode**: Uses optimized assets with content hashing (e.g., `/_astro/yield-curve_bfc5e376.png`)
    - ✅ **No Fallbacks**: Never uses original paths, always optimized routes following Astro's native patterns
-   - ✅ **Unified Implementation**: Single codebase handles both modes via emitFile() handle validation
+   - ✅ **Code Quality**: Eliminated 20+ lines of complex try/catch detection logic
 
 3. **Theme Loading Issues** 🔄 ONGOING
    - Risk: Custom themes not loading properly

@@ -62,41 +62,28 @@ async function processImagesInMarkdown(
           };
         }
 
-        // Follow Astro's emitESMImage pattern exactly
-        let isBuild = typeof emitFile === 'function';
+        // Simplified detection using environment variable like astro-typst
+        const isBuild = import.meta.env.PROD && typeof emitFile === 'function';
         let optimizedSrc: string = '';
 
         if (isBuild) {
-          try {
-            // Build mode: emit file and use Astro asset placeholder
-            const imageBuffer = readFileSync(imagePath);
-            const fileExtension = extname(imagePath);
-            const baseName = basename(imagePath, fileExtension);
-            const contentHash = createHash('md5').update(imageBuffer).digest('hex').slice(0, 8);
-            const fileName = `${baseName}_${contentHash}${fileExtension}`;
+          // Build mode: emit file and use Astro asset placeholder
+          const imageBuffer = readFileSync(imagePath);
+          const fileExtension = extname(imagePath);
+          const baseName = basename(imagePath, fileExtension);
+          const contentHash = createHash('md5').update(imageBuffer).digest('hex').slice(0, 8);
+          const fileName = `${baseName}_${contentHash}${fileExtension}`;
 
-            // Emit the file and get the reference handle
-            const handle = emitFile!({
-              type: 'asset',
-              fileName: `_astro/${fileName}`,
-              source: imageBuffer,
-            });
+          // Emit the file and get the reference handle
+          const handle = emitFile!({
+            type: 'asset',
+            fileName: `_astro/${fileName}`,
+            source: imageBuffer,
+          });
 
-            // Check if handle is valid - empty handle means dev mode
-            if (handle && handle.trim() !== '') {
-              // True build mode: use Astro's asset placeholder pattern
-              optimizedSrc = `__ASTRO_ASSET_IMAGE__${handle}__`;
-              console.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
-            } else {
-              // Dev mode: emitFile returns empty handle
-              console.debug(`[astro-marp] Dev mode detected: emitFile returned empty handle for ${src}`);
-              isBuild = false;
-            }
-          } catch (error) {
-            // If emitFile fails, fall back to dev mode
-            console.debug(`[astro-marp] emitFile failed for ${src}, falling back to dev mode:`, error);
-            isBuild = false;
-          }
+          // Use Astro's asset placeholder pattern
+          optimizedSrc = `__ASTRO_ASSET_IMAGE__${handle}__`;
+          console.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
         }
 
         if (!isBuild) {
