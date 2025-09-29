@@ -49,7 +49,7 @@ export function resolveTheme(themeName: string): string {
   else if (['am_blue', 'am_brown', 'am_dark', 'am_green', 'am_purple', 'am_red'].includes(themeName)) {
     const themePath = resolve(THEMES_DIR, `${themeName}.scss`);
     if (existsSync(themePath)) {
-      console.log(`[astro-marp] Using built-in theme: ${themeName} at ${themePath}`);
+      //console.log(`[astro-marp] Using built-in theme: ${themeName} at ${themePath}`);
       result = themePath;
     } else {
       console.warn(`[astro-marp] Built-in theme "${themeName}" not found at ${themePath}, falling back to "gaia"`);

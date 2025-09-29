@@ -83,7 +83,7 @@ async function processImagesInMarkdown(
 
           // Use Astro's asset placeholder pattern
           optimizedSrc = `__ASTRO_ASSET_IMAGE__${handle}__`;
-          console.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
+          //console.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
         }
 
         if (!isBuild) {
@@ -101,7 +101,7 @@ async function processImagesInMarkdown(
 
           // Use Astro's /@fs pattern
           optimizedSrc = `/@fs${prependForwardSlash(filePathToNormalizedPath(url.pathname + url.search))}`;
-          console.debug(`[astro-marp] Dev mode: using /@fs pattern for ${src}: ${optimizedSrc}`);
+          //console.debug(`[astro-marp] Dev mode: using /@fs pattern for ${src}: ${optimizedSrc}`);
         }
 
         return {
@@ -142,7 +142,7 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
 
     load(id) {
       if (!isMarpFile(id)) return;
-      console.debug(`[vite-plugin-marp] Loading id: ${id}`);
+      //console.debug(`[vite-plugin-marp] Loading id: ${id}`);
     },
 
     async transform(code: string, id: string) {
