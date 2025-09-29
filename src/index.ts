@@ -87,7 +87,7 @@ declare module 'astro:content' {
 
       'astro:config:done': ({ config: astroConfig, logger, injectTypes }) => {
         const resolvedTheme = resolveTheme(config.defaultTheme);
-        logger.info(`Marp integration ready with theme: ${resolvedTheme}`);
+        logger.info(`Marp integration ready with default theme: ${resolvedTheme}`);
 
         // Inject TypeScript definitions
         injectTypes({

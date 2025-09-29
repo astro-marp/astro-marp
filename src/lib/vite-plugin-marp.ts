@@ -30,7 +30,8 @@ function prependForwardSlash(path: string): string {
 async function processImagesInMarkdown(
   markdown: string,
   marpFilePath: string,
-  emitFile?: (options: { type: 'asset'; fileName: string; source: Buffer | string }) => string
+  emitFile?: (options: { type: 'asset'; fileName: string; source: Buffer | string }) => string,
+  isProduction: boolean = false
 ): Promise<string> {
   const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
   let processedMarkdown = markdown;
@@ -63,7 +64,7 @@ async function processImagesInMarkdown(
         }
 
         // Simplified detection using environment variable like astro-typst
-        const isBuild = import.meta.env.PROD && typeof emitFile === 'function';
+        const isBuild = isProduction && typeof emitFile === 'function';
         let optimizedSrc: string = '';
 
         if (isBuild) {
@@ -136,10 +137,13 @@ async function processImagesInMarkdown(
 
 
 export function createViteMarpPlugin(config: MarpConfig): Plugin {
+  let isProduction = false;
   return {
     name: 'vite-plugin-marp',
     enforce: 'pre',
-
+    configResolved(resolvedConfig) {
+      isProduction = resolvedConfig.command === 'build';
+    },
     load(id) {
       if (!isMarpFile(id)) return;
       //console.debug(`[vite-plugin-marp] Loading id: ${id}`);
@@ -157,8 +161,7 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
         const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string) : theme;
 
         // Process images in the markdown before Marp CLI
-        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this));
-
+        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this), isProduction);
         // Run Marp CLI to process the processed markdown
         const marpResult = await runMarpCli(processedMarkdown, {
           theme: effectiveTheme,
