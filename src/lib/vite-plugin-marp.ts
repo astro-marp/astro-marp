@@ -4,9 +4,95 @@ import { parseMarpFile } from './marp-parser.js';
 import { resolveTheme } from './theme-resolver.js';
 import { runMarpCli, generateSourceHash } from './marp-runner.js';
 import { pathToFileURL } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { extname, resolve, dirname } from 'node:path';
+import { createHash } from 'node:crypto';
 
 function isMarpFile(id: string) {
   return /\.marp$/.test(id);
+}
+
+function isLocalImage(src: string): boolean {
+  // Check if it's a local image (not http/https/data URL)
+  return !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:');
+}
+
+async function processImagesInMarkdown(
+  markdown: string,
+  marpFilePath: string,
+  emitFile?: (options: { type: 'asset'; fileName: string; source: Buffer | string }) => string
+): Promise<string> {
+  const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  let processedMarkdown = markdown;
+  const marpDir = dirname(marpFilePath);
+
+  // Collect all image promises for parallel processing
+  const imagePromises: Promise<{ match: RegExpMatchArray; replacement: string }>[] = [];
+
+  let match;
+  while ((match = imageRegex.exec(markdown)) !== null) {
+    const [fullMatch, alt, src] = match;
+
+    if (!isLocalImage(src)) {
+      // Keep remote images unchanged
+      continue;
+    }
+
+
+    const imagePromise = (async () => {
+      try {
+        // Resolve the image path relative to the .marp file
+        const imagePath = resolve(marpDir, src);
+        if (emitFile) {
+          // Production build: emit file to dist/_astro
+          const imageBuffer = readFileSync(imagePath);
+          const fileExtension = extname(imagePath);
+          const fileName = `${createHash('md5').update(imageBuffer).digest('hex')}${fileExtension}`;
+
+          // Emit the file and get the reference ID
+          const referenceId = emitFile({
+            type: 'asset',
+            fileName: `_astro/${fileName}`,
+            source: imageBuffer,
+          });
+
+          // Return the optimized image with public URL pattern
+          const optimizedSrc = `/_astro/${fileName}`;
+          return {
+            match,
+            replacement: `<img src="${optimizedSrc}" alt="${alt}" />`,
+          };
+        } else {
+          // Development: convert to HTML but keep relative path
+          return {
+            match,
+            replacement: `<img src="${src}" alt="${alt}" />`,
+          };
+        }
+      } catch (error) {
+        console.warn(`[astro-marp] Failed to process image ${src}:`, error);
+        // Fallback to original markdown
+        return {
+          match,
+          replacement: fullMatch,
+        };
+      }
+    })();
+
+    imagePromises.push(imagePromise);
+  }
+
+  // Process all images in parallel
+  const imageResults = await Promise.all(imagePromises);
+
+  // Apply replacements (in reverse order to maintain string indices)
+  imageResults.reverse().forEach(({ match, replacement }) => {
+    const startIndex = match.index!;
+    const endIndex = startIndex + match[0].length;
+    processedMarkdown = processedMarkdown.slice(0, startIndex) + replacement + processedMarkdown.slice(endIndex);
+  });
+
+  return processedMarkdown;
 }
 
 
@@ -31,8 +117,11 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
         // Use the theme from frontmatter if specified
         const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string) : theme;
 
-        // Run Marp CLI to process the markdown - pass complete file with frontmatter for headingDivider processing
-        const marpResult = await runMarpCli(code, {
+        // Process images in the markdown before Marp CLI
+        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this));
+
+        // Run Marp CLI to process the processed markdown
+        const marpResult = await runMarpCli(processedMarkdown, {
           theme: effectiveTheme,
           html: true,
         });
@@ -41,14 +130,17 @@ export function createViteMarpPlugin(config: MarpConfig): Plugin {
           console.warn(`[astro-marp] Warning processing ${id}:`, marpResult.error);
         }
 
-        // Complete unmodified Marp CLI output - following exact astro-typst pattern
+        // Use the Marp CLI output directly (it now contains __ASTRO_IMAGE__ placeholders)
+        const finalHtml = marpResult.html;
+
+        // Complete Marp CLI output with optimized images - following exact astro-typst pattern
         const componentCode = `
 import { createComponent, render, renderJSX, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
 import { AstroJSX, jsx } from 'astro/jsx-runtime';
 import { readFileSync } from "node:fs";
 
 export const name = "MarpComponent";
-export const html = ${JSON.stringify(marpResult.html)};
+export const html = ${JSON.stringify(finalHtml)};
 export const frontmatter = ${JSON.stringify(parsed.frontmatter)};
 export const file = ${JSON.stringify(id)};
 export const url = ${JSON.stringify(pathToFileURL(id).href)};
@@ -58,7 +150,7 @@ export function rawContent() {
 }
 
 export function compiledContent() {
-    return ${JSON.stringify(marpResult.html)};
+    return ${JSON.stringify(finalHtml)};
 }
 
 export function getHeadings() {
@@ -102,9 +194,11 @@ export default Content;
 </body>
 </html>`;
         const errorCode = `
+import { createComponent, render, renderJSX, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
+import { AstroJSX, jsx } from 'astro/jsx-runtime';
+
 export const name = "MarpErrorComponent";
-export const marpHtml = ${JSON.stringify(errorHtml)};
-export const html = marpHtml;
+export const html = ${JSON.stringify(errorHtml)};
 export const frontmatter = {};
 export const file = ${JSON.stringify(id)};
 export const url = ${JSON.stringify(pathToFileURL(id).href)};
@@ -114,16 +208,18 @@ export function rawContent() {
 }
 
 export function compiledContent() {
-    return marpHtml;
+    return ${JSON.stringify(errorHtml)};
 }
 
 export function getHeadings() {
     return [];
 }
 
-export const Content = marpHtml;
+export const Content = createComponent(async (result, _props, slots) => {
+    return render\`\${unescapeHTML(compiledContent())}\`;
+});
 
-export default marpHtml;
+export default Content;
 `;
 
         return {

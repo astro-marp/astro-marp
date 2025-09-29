@@ -46,8 +46,8 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
 
 
         // TODO: Re-enable page extension after fixing Vite plugin compatibility
-        // addPageExtension('.marp');
-        // logger.info('Registered .marp page extension');
+        addPageExtension('.marp');
+        logger.info('Registered .marp page extension');
 
         // Add content entry type for content collections
         addContentEntryType({
@@ -58,7 +58,7 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
 
             return {
               data: frontmatter,
-              body: contents, // Raw file contents
+              body: contents, // Raw content - image processing happens in Vite plugin
               slug: frontmatter.slug,
               rawData: contents, // astro-typst pattern
             };

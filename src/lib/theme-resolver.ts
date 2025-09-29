@@ -30,32 +30,45 @@ function getThemesDir(): string {
 
 const THEMES_DIR = getThemesDir();
 
+// Cache to prevent duplicate logging
+const resolvedThemes = new Map<string, string>();
+
 export function resolveTheme(themeName: string): string {
-  // Handle built-in Marp themes (no file path needed)
-  if (['default', 'gaia', 'uncover'].includes(themeName)) {
-    return themeName;
+  // Return cached result if already resolved
+  if (resolvedThemes.has(themeName)) {
+    return resolvedThemes.get(themeName)!;
   }
 
+  let result: string;
+
+  // Handle built-in Marp themes (no file path needed)
+  if (['default', 'gaia', 'uncover'].includes(themeName)) {
+    result = themeName;
+  }
   // Handle built-in am_* themes with file paths
-  if (['am_blue', 'am_brown', 'am_dark', 'am_green', 'am_purple', 'am_red'].includes(themeName)) {
+  else if (['am_blue', 'am_brown', 'am_dark', 'am_green', 'am_purple', 'am_red'].includes(themeName)) {
     const themePath = resolve(THEMES_DIR, `${themeName}.scss`);
     if (existsSync(themePath)) {
       console.log(`[astro-marp] Using built-in theme: ${themeName} at ${themePath}`);
-      return themePath;
+      result = themePath;
     } else {
       console.warn(`[astro-marp] Built-in theme "${themeName}" not found at ${themePath}, falling back to "gaia"`);
-      return 'gaia';
+      result = 'gaia';
     }
   }
-
   // Handle absolute paths (for future extensibility)
-  if (themeName.startsWith('/') && existsSync(themeName)) {
-    return themeName;
+  else if (themeName.startsWith('/') && existsSync(themeName)) {
+    result = themeName;
+  }
+  // Fallback to default
+  else {
+    console.warn(`[astro-marp] Theme "${themeName}" not found, falling back to "default"`);
+    result = 'default';
   }
 
-  // Fallback to default
-  console.warn(`[astro-marp] Theme "${themeName}" not found, falling back to "default"`);
-  return 'default';
+  // Cache the result
+  resolvedThemes.set(themeName, result);
+  return result;
 }
 
 export function validateTheme(themeName: string): boolean {
