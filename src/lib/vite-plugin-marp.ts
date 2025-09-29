@@ -86,9 +86,7 @@ async function processImagesInMarkdown(
           // Use Astro's asset placeholder pattern
           optimizedSrc = `__ASTRO_ASSET_IMAGE__${handle}__`;
           logger.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
-        }
-
-        if (!isBuild) {
+        } else {
           // Development mode: use Astro's /@fs pattern with metadata
           const url = pathToFileURL(imagePath);
 
