@@ -12,7 +12,7 @@
 - **URL Fragment Routing**: ✅ Deep linking to slides via `#2`, `#3` etc.
 - **Content Collections**: ✅ Full `getCollection('presentations')` support
 - **Build Pipeline**: ✅ Clean TypeScript builds and npm package installation
-- **Image Optimization**: ✅ **COMPLETE** - Production emitFile() pipeline with dist/_astro assets
+- **Image Optimization**: ✅ **ASTRO-NATIVE** - Unified pipeline following core emitESMImage() pattern
 - **Theme System**: ✅ Built-in themes (am_blue, gaia, uncover) working perfectly
 - **Error Handling**: ✅ Graceful failures with comprehensive error components
 
@@ -359,7 +359,7 @@ git push --tags
 
 ### Technical Metrics
 - ✅ **Build Success Rate**: 100% (achieved)
-- ✅ **Image Optimization**: 100% **COMPLETE** - Production emitFile() with hashed assets (achieved)
+- ✅ **Image Optimization**: 100% **ASTRO-NATIVE** - Unified dev/build pipeline (achieved)
 - ✅ **Route Accessibility**: 100% (content collections + manual routing)
 - ✅ **Theme Support**: 90% (built-in themes working perfectly)
 

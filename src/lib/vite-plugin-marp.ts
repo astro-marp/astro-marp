@@ -5,7 +5,7 @@ import { resolveTheme } from './theme-resolver.js';
 import { runMarpCli, generateSourceHash } from './marp-runner.js';
 import { pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { extname, resolve, dirname } from 'node:path';
+import { extname, resolve, dirname, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 
 function isMarpFile(id: string) {
@@ -43,32 +43,44 @@ async function processImagesInMarkdown(
       try {
         // Resolve the image path relative to the .marp file
         const imagePath = resolve(marpDir, src);
-        if (emitFile) {
-          // Production build: emit file to dist/_astro
-          const imageBuffer = readFileSync(imagePath);
-          const fileExtension = extname(imagePath);
-          const fileName = `${createHash('md5').update(imageBuffer).digest('hex')}${fileExtension}`;
+        // Follow Astro's emitESMImage pattern for unified build/serve mode handling
+        let isBuild = typeof emitFile === 'function';
+        let optimizedSrc = src; // Default to original path
 
-          // Emit the file and get the reference ID
-          const referenceId = emitFile({
-            type: 'asset',
-            fileName: `_astro/${fileName}`,
-            source: imageBuffer,
-          });
+        if (isBuild) {
+          try {
+            // Attempt to emit file for build mode
+            const imageBuffer = readFileSync(imagePath);
+            const fileExtension = extname(imagePath);
+            const baseName = basename(imagePath, fileExtension);
+            const contentHash = createHash('md5').update(imageBuffer).digest('hex').slice(0, 8);
+            const fileName = `${baseName}_${contentHash}${fileExtension}`;
 
-          // Return the optimized image with public URL pattern
-          const optimizedSrc = `/_astro/${fileName}`;
-          return {
-            match,
-            replacement: `<img src="${optimizedSrc}" alt="${alt}" />`,
-          };
-        } else {
-          // Development: convert to HTML but keep relative path
-          return {
-            match,
-            replacement: `<img src="${src}" alt="${alt}" />`,
-          };
+            // Emit the file and get the reference ID
+            const referenceId = emitFile!({
+              type: 'asset',
+              fileName: `_astro/${fileName}`,
+              source: imageBuffer,
+            });
+
+            // Create Astro-style asset placeholder (will be resolved at runtime)
+            optimizedSrc = `__ASTRO_ASSET_IMAGE__${referenceId}__`;
+          } catch (error) {
+            // If emitFile fails (e.g., in serve mode), fall back to dev mode
+            console.debug(`[astro-marp] emitFile failed for ${src}, using dev mode path:`, error);
+            isBuild = false;
+          }
         }
+
+        if (!isBuild) {
+          // Development mode: use original relative path or file:// URL
+          optimizedSrc = src;
+        }
+
+        return {
+          match,
+          replacement: `<img src="${optimizedSrc}" alt="${alt}" />`,
+        };
       } catch (error) {
         console.warn(`[astro-marp] Failed to process image ${src}:`, error);
         // Fallback to original markdown
