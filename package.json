@@ -34,26 +34,27 @@
     "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
-    "astro": "^5.13.0"
+    "astro": "^5.14.0"
   },
   "dependencies": {
     "@marp-team/marp-cli": "^4.2.3",
-    "astro": "^5.13.0"
+    "astro": "^5.14.1"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
+    "@types/node": "^24.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
     "astro": "^5.14.0",
-    "eslint": "^8.0.0",
-    "typescript": "^5.0.0"
+    "eslint": "^9.36.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/astro-marp.git"
+    "url": "https://github.com/astro-marp/astro-marp.git"
   },
   "license": "MIT",
   "author": "Jennings Liu"
