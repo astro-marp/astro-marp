@@ -19,7 +19,8 @@
       "mcp__playwright__browser_snapshot",
       "mcp__playwright__browser_press_key",
       "Bash(git add:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(pnpm install:*)"
     ],
     "deny": [],
     "ask": []

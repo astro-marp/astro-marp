@@ -39,8 +39,8 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
 
         // Validate theme at setup time
         if (!validateTheme(config.defaultTheme)) {
-          logger.warn(`Theme "${config.defaultTheme}" not found, using "default"`);
-          config.defaultTheme = 'default';
+          logger.warn(`Theme "${config.defaultTheme}" not found, using "am_blue"`);
+          config.defaultTheme = 'am_blue';
         }
 
 
@@ -86,7 +86,7 @@ declare module 'astro:content' {
 
       'astro:config:done': ({ config: astroConfig, logger, injectTypes }) => {
         const resolvedTheme = resolveTheme(config.defaultTheme, logger);
-        logger.info(`Marp integration ready with default theme: ${resolvedTheme}`);
+        //logger.info(`Marp integration ready with default theme: ${resolvedTheme}`);
 
         // Inject TypeScript definitions
         injectTypes({

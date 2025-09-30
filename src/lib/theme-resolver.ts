@@ -19,7 +19,7 @@ function getThemesDir(logger: any): string {
 
   for (const dir of possibleDirs) {
     if (existsSync(dir)) {
-      logger.info(`[astro-marp] Found themes directory: ${dir}`);
+      // logger.info(`[astro-marp] Found themes directory: ${dir}`);
       return dir;
     }
   }
@@ -46,7 +46,6 @@ export function resolveTheme(themeName: string, logger: any): string {
   if (['am_blue', 'am_brown', 'am_dark', 'am_green', 'am_purple', 'am_red'].includes(themeName)) {
     const THEMES_DIR = getThemesDir(logger);
     const themePath = resolve(THEMES_DIR, `${themeName}.scss`);
-    logger.info(`[astro-marp] Using built-in theme: ${themeName} at ${themePath}`);
     result = themePath;
 
   }

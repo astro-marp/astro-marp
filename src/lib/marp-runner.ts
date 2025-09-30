@@ -47,11 +47,11 @@ export async function runMarpCli(markdown: string, options: MarpRunnerOptions = 
     ];
 
     // Add theme if specified and not a built-in theme
-    if (theme && !['default', 'gaia', 'uncover'].includes(theme)) {
+    if (theme) {
       // For file paths, we need to ensure Marp CLI properly resolves them
       args.push('--theme', theme);
-    } else if (['gaia', 'uncover'].includes(theme)) {
-      args.push('--theme', theme);
+    } else {
+      args.push('--theme', "am_blue");
     }
 
     const marpCliPath = findMarpCli();
