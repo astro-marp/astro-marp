@@ -36,7 +36,7 @@ export const raw: string;               // Post-processed Markdown
 
 ### Key Components
 - **Vite Plugin** (`src/lib/vite-plugin-marp.ts`): Handles file transformation and virtual module creation
-- **Theme System** (`src/themes/`): Built-in SCSS themes passed to Marp CLI via `--theme` flag
+- **Theme System** (`src/themes/`, `src/lib/theme-resolver.ts`): Dynamic theme discovery and built-in SCSS themes passed to Marp CLI via `--theme` flag
 - **Image Processor**: Local image optimization through Astro's asset pipeline
 - **Content Entry Type**: Integration with Astro's content collection system
 
@@ -69,7 +69,7 @@ export default defineConfig({
 - **HMR Support**: Changes to `.marp` files trigger automatic re-rendering
 - **Content Collections**: Query presentations via `getCollection('presentations')`
 - **Asset Optimization**: Local images processed through Astro's optimization
-- **Theme System**: Built-in SCSS themes, no compilation required by plugin
+- **Dynamic Theme System**: Automatic discovery of available themes from filesystem, no hardcoded lists
 - **Mermaid Support**: Automatic injection of Mermaid initialization script
 
 ## Testing Strategy
@@ -90,16 +90,16 @@ The plugin includes a comprehensive manual testing protocol using a parent test-
 
 ## Current Implementation Status
 
-### ✅ COMPLETED (85%)
+### ✅ COMPLETED (90%)
 - **Core Integration**: Full Astro lifecycle integration
 - **Image Optimization**: Local images → `dist/_astro/` with hashing
 - **Content Collections**: Complete `getCollection('presentations')` support
 - **Build Pipeline**: Clean builds without Vite conflicts
-- **Theme System**: Built-in themes (gaia, default, uncover)
+- **Dynamic Theme System**: Automatic theme discovery from filesystem (6 built-in themes: am_blue, am_brown, am_dark, am_green, am_purple, am_red)
 - **Virtual Modules**: Proper `virtual:astro-marp/<slug>` pattern
 - **Error Handling**: Graceful failure with error components
 
-### 🔄 PENDING (15%)
+### 🔄 PENDING (10%)
 - **Page Routing**: Direct `/presentations/[slug]` access (removed due to conflicts)
 - **Custom Themes**: User-provided SCSS themes (temporarily disabled)
 - **Advanced Features**: Navigation controls, presenter mode
@@ -114,7 +114,7 @@ The plugin includes a comprehensive manual testing protocol using a parent test-
 - **Core**: `@marp-team/marp-cli` (direct dependency, not npx)
 - **Astro APIs**: `addContentEntryType`, `addRenderer`, Vite plugin system
 - **Image Processing**: Astro's native asset pipeline with runtime template replacement
-- **Themes**: Built-in SCSS files (custom themes pending path resolution fixes)
+- **Themes**: Dynamic theme discovery from `/src/themes/` directory with built-in SCSS files
 
 ## Security Considerations
 
@@ -132,7 +132,7 @@ The plugin includes a comprehensive manual testing protocol using a parent test-
 
 ### 2. Custom Themes Disabled
 **Issue**: Custom themes cause CSS import errors in Marp CLI
-**Workaround**: Use built-in themes (gaia, default, uncover)
+**Workaround**: Use built-in themes (am_blue, am_brown, am_dark, am_green, am_purple, am_red)
 **Fix Needed**: Enhanced theme path resolution and Marp CLI integration
 
 ### 3. Test Project Warning
@@ -144,6 +144,7 @@ The plugin includes a comprehensive manual testing protocol using a parent test-
 
 ### Successful Build Indicators
 ```
+✅ [astro-marp] Discovered 6 themes: am_blue, am_brown, am_dark, am_green, am_purple, am_red
 ✅ [astro-marp] Processing local image: ./images/business-cycle.svg -> import image0
 ✅ dist/_astro/business-cycle.Cz_Ut2UY.svg (optimized asset created)
 ✅ <img src="/_astro/business-cycle.Cz_Ut2UY.svg" alt="Business Cycle" /> (correct URL in HTML)

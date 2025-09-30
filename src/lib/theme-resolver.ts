@@ -1,12 +1,13 @@
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { AstroIntegrationLogger } from 'astro';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const BUILT_IN_THEMES = ['am_blue', 'am_brown', 'am_dark', 'am_green', 'am_purple', 'am_red'];
+// Cache for discovered themes to avoid repeated file system access
+let cachedThemes: string[] | null = null;
 
 // Try multiple possible theme directories
 function getThemesDir(logger: any): string {
@@ -29,6 +30,37 @@ function getThemesDir(logger: any): string {
   return possibleDirs[0];
 }
 
+// Dynamically discover available themes from the themes directory
+function getAvailableThemes(logger: any): string[] {
+  if (cachedThemes !== null) {
+    return cachedThemes;
+  }
+
+  const themesDir = getThemesDir(logger);
+
+  try {
+    if (!existsSync(themesDir)) {
+      console.warn(`[astro-marp] Themes directory does not exist: ${themesDir}`);
+      cachedThemes = [];
+      return cachedThemes;
+    }
+
+    const files = readdirSync(themesDir);
+    const themes = files
+      .filter(file => file.endsWith('.scss'))
+      .map(file => file.replace('.scss', ''))
+      .sort(); // Sort for consistent ordering
+
+    cachedThemes = themes;
+    logger?.info(`[astro-marp] Discovered ${themes.length} themes: ${themes.join(', ')}`);
+    return themes;
+  } catch (error) {
+    console.error(`[astro-marp] Error reading themes directory: ${error}`);
+    cachedThemes = [];
+    return cachedThemes;
+  }
+}
+
 
 
 // Cache to prevent duplicate logging
@@ -42,8 +74,9 @@ export function resolveTheme(themeName: string, logger: any): string {
 
   let result = '';
 
-  // Handle built-in Marp themes (no file path needed)
-  if (['am_blue', 'am_brown', 'am_dark', 'am_green', 'am_purple', 'am_red'].includes(themeName)) {
+  // Handle available themes dynamically discovered from themes directory
+  const availableThemes = getAvailableThemes(logger);
+  if (availableThemes.includes(themeName)) {
     const THEMES_DIR = getThemesDir(logger);
     const themePath = resolve(THEMES_DIR, `${themeName}.scss`);
     result = themePath;
@@ -64,8 +97,9 @@ export function resolveTheme(themeName: string, logger: any): string {
   return result;
 }
 
-export function validateTheme(themeName: string): boolean {
-  if (BUILT_IN_THEMES.includes(themeName)) {
+export function validateTheme(themeName: string, logger?: any): boolean {
+  const availableThemes = getAvailableThemes(logger);
+  if (availableThemes.includes(themeName)) {
     return true;
   }
 
@@ -74,4 +108,14 @@ export function validateTheme(themeName: string): boolean {
   }
 
   return false;
+}
+
+// Export available themes for external use
+export function getThemeList(logger?: any): string[] {
+  return getAvailableThemes(logger);
+}
+
+// Clear the themes cache (useful for testing or when themes directory changes)
+export function clearThemeCache(): void {
+  cachedThemes = null;
 }
