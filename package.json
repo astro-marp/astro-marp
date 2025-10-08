@@ -39,16 +39,16 @@
   "dependencies": {
     "@marp-team/marp-cli": "^4.2.3",
     "astro": "^5.14.1",
-    "sharp": "^0.33.0"
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
-    "@types/node": "^24.6.0",
-    "@typescript-eslint/eslint-plugin": "^8.45.0",
-    "@typescript-eslint/parser": "^8.45.0",
+    "@types/node": "^24.7.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
     "astro": "^5.14.0",
-    "eslint": "^9.36.0",
-    "typescript": "^5.9.2",
-    "vite": "^7.1.7"
+    "eslint": "^9.37.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9"
   },
   "engines": {
     "node": ">=22.0.0"

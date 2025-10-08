@@ -20,7 +20,10 @@
       "mcp__playwright__browser_press_key",
       "Bash(git add:*)",
       "Bash(npm install:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nrefactor: align mode detection with official Astro integration patterns\n\nReplace Vite''s configResolved hook with Astro''s command parameter for mode\ndetection, following the same pattern used by official integrations (MDX,\nMarkdoc). This improves reliability, simplifies code, and ensures better\ncompatibility with Astro''s lifecycle.\n\nChanges:\n- src/index.ts: Extract and pass command parameter to Vite plugin\n- src/lib/vite-plugin-marp.ts: Accept command parameter, remove configResolved hook\n- CLAUDE.md: Document mode detection approach and mark issue as resolved\n- SPEC_PLAN_TASKS.md: Add Task 0 documenting the issue and solution\n- requirements.md: Add technical debt section with detailed analysis\n\nBenefits:\n- Aligns with official Astro integration patterns\n- More reliable mode detection using Astro''s lifecycle\n- Simpler code without Vite-specific hooks\n- Better future compatibility with Astro updates\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []
