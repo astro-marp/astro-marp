@@ -37,7 +37,9 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
       'astro:config:setup': (options) => {
         const { addPageExtension, addContentEntryType, updateConfig, logger, command } = options as unknown as SetupHookParams;
 
-        logger.info('Setting up Marp integration...');
+        if (config.debug) {
+          logger.info('Setting up Marp integration...');
+        }
 
         // Validate theme at setup time
         if (!validateTheme(config.defaultTheme)) {
@@ -48,7 +50,9 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
 
         // TODO: Re-enable page extension after fixing Vite plugin compatibility
         addPageExtension('.marp');
-        logger.info('Registered .marp page extension');
+        if (config.debug) {
+          logger.info('Registered .marp page extension');
+        }
 
         // Add content entry type for content collections
         addContentEntryType({
@@ -75,7 +79,9 @@ declare module 'astro:content' {
 }
           `,
         });
-        logger.info('Registered .marp content entry type');
+        if (config.debug) {
+          logger.info('Registered .marp content entry type');
+        }
 
         // Add Vite plugin for transformation
         updateConfig({
@@ -83,7 +89,9 @@ declare module 'astro:content' {
             plugins: [createViteMarpPlugin(config, command, logger)],
           },
         });
-        logger.info('Added Vite plugin for .marp transformation');
+        if (config.debug) {
+          logger.info('Added Vite plugin for .marp transformation');
+        }
       },
 
       'astro:config:done': ({ config: astroConfig, logger, injectTypes }) => {
