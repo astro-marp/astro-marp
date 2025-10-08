@@ -8,6 +8,33 @@ import { readFileSync, existsSync } from 'node:fs';
 import { extname, resolve, dirname, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 
+// Image info interface for ESM imports
+interface ImageInfo {
+  index: number;
+  originalSrc: string;
+  resolvedPath: string;
+  alt: string;
+}
+
+// Asset tracking interface
+interface ProcessedAsset {
+  source: string;
+  output: string;
+  size: number;
+  mode: 'dev' | 'build';
+}
+
+// Asset tracking for build summary
+const processedAssets = new Map<string, Array<ProcessedAsset>>();
+
+export function getProcessedAssets() {
+  return processedAssets;
+}
+
+export function clearProcessedAssets() {
+  processedAssets.clear();
+}
+
 function isMarpFile(id: string) {
   return /\.marp$/.test(id);
 }
@@ -17,121 +44,84 @@ function isLocalImage(src: string): boolean {
   return !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:');
 }
 
-// Helper function to normalize paths like Astro's fileURLToNormalizedPath
-function filePathToNormalizedPath(filePath: string): string {
-  return filePath.replace(/\\/g, '/');
-}
-
-// Helper function to add forward slash
-function prependForwardSlash(path: string): string {
-  return path.startsWith('/') ? path : '/' + path;
-}
-
-async function processImagesInMarkdown(
+// Collect images from markdown for ESM import generation
+async function collectImagesFromMarkdown(
   markdown: string,
   marpFilePath: string,
-  emitFile?: (options: { type: 'asset'; fileName: string; source: Buffer | string }) => string,
-  isProduction: boolean = false,
   logger?: any
-): Promise<string> {
+): Promise<ImageInfo[]> {
   const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-  let processedMarkdown = markdown;
   const marpDir = dirname(marpFilePath);
-
-  // Collect all image promises for parallel processing
-  const imagePromises: Promise<{ match: RegExpMatchArray; replacement: string }>[] = [];
+  const images: ImageInfo[] = [];
+  let imageIndex = 0;
 
   let match;
   while ((match = imageRegex.exec(markdown)) !== null) {
     const [fullMatch, alt, src] = match;
 
     if (!isLocalImage(src)) {
-      // Keep remote images unchanged
+      // Skip remote images - they don't need optimization
+      logger.debug(`[astro-marp] Skipping remote image: ${src}`);
       continue;
     }
 
-    const imagePromise = (async () => {
-      try {
-        // Resolve the image path relative to the .marp file
-        const imagePath = resolve(marpDir, src);
+    try {
+      // Resolve the image path relative to the .marp file
+      const imagePath = resolve(marpDir, src);
 
-        // Check if file exists
-        if (!existsSync(imagePath)) {
-          logger.warn(`[astro-marp] Image file not found: ${imagePath}`);
-          return {
-            match,
-            replacement: fullMatch, // Keep original if file doesn't exist
-          };
-        }
-
-        // Simplified detection using environment variable like astro-typst
-        const isBuild = isProduction && typeof emitFile === 'function';
-        let optimizedSrc: string = '';
-
-        if (isBuild) {
-          // Build mode: emit file and use Astro asset placeholder
-          const imageBuffer = readFileSync(imagePath);
-          const fileExtension = extname(imagePath);
-          const baseName = basename(imagePath, fileExtension);
-          const contentHash = createHash('md5').update(imageBuffer).digest('hex').slice(0, 8);
-          const fileName = `${baseName}_${contentHash}${fileExtension}`;
-
-          // Emit the file and get the reference handle
-          const handle = emitFile!({
-            type: 'asset',
-            fileName: `_astro/${fileName}`,
-            source: imageBuffer,
-          });
-
-          // Use Astro's asset placeholder pattern
-          optimizedSrc = `__ASTRO_ASSET_IMAGE__${handle}__`;
-          logger.debug(`[astro-marp] Build mode: emitted ${src} with handle: ${handle}`);
-        } else {
-          // Development mode: use Astro's /@fs pattern with metadata
-          const url = pathToFileURL(imagePath);
-
-          // Read image metadata for query params (following Astro's pattern)
-          const imageBuffer = readFileSync(imagePath);
-          // Basic image metadata - simplified version
-          const format = extname(imagePath).slice(1).toLowerCase();
-
-          // Add metadata query params like Astro does
-          url.searchParams.append('origFormat', format);
-          url.searchParams.append('astroMarpProcessed', 'true');
-
-          // Use Astro's /@fs pattern
-          optimizedSrc = `/@fs${prependForwardSlash(filePathToNormalizedPath(url.pathname + url.search))}`;
-          logger.debug(`[astro-marp] Dev mode: using /@fs pattern for ${src}: ${optimizedSrc}`);
-        }
-
-        return {
-          match,
-          replacement: `<img src="${optimizedSrc}" alt="${alt}" />`,
-        };
-      } catch (error) {
-        logger.warn(`[astro-marp] Failed to process image ${src}:`, error);
-        // Fallback to original markdown
-        return {
-          match,
-          replacement: fullMatch,
-        };
+      // Check if file exists
+      if (!existsSync(imagePath)) {
+        logger.warn(`[astro-marp] Image file not found: ${imagePath}`);
+        continue;
       }
-    })();
 
-    imagePromises.push(imagePromise);
+      // Add to collection for ESM import generation
+      images.push({
+        index: imageIndex++,
+        originalSrc: src,
+        resolvedPath: imagePath,
+        alt: alt || ''
+      });
+
+      logger.debug(`[astro-marp] Collected image: ${src} → ${imagePath}`);
+    } catch (error) {
+      logger.warn(`[astro-marp] Failed to process image ${src}:`, error);
+    }
   }
 
-  // Process all images in parallel
-  const imageResults = await Promise.all(imagePromises);
+  return images;
+}
 
-  // Apply replacements (in reverse order to maintain string indices)
-  imageResults.reverse().forEach(({ match, replacement }) => {
-    const startIndex = match.index!;
-    const endIndex = startIndex + match[0].length;
-    processedMarkdown = processedMarkdown.slice(0, startIndex) + replacement + processedMarkdown.slice(endIndex);
+// Generate ESM import statements for images
+function generateImageImports(images: ImageInfo[]): string {
+  if (images.length === 0) return '';
+
+  return images
+    .map(img => `import image${img.index} from '${img.resolvedPath}';`)
+    .join('\n');
+}
+
+// Replace images in markdown with placeholders
+function replaceImagesWithPlaceholders(
+  markdown: string,
+  images: ImageInfo[]
+): string {
+  let processed = markdown;
+
+  // Process in reverse order to maintain string indices
+  const sortedImages = [...images].sort((a, b) => {
+    const posA = markdown.indexOf(`![${a.alt}](${a.originalSrc})`);
+    const posB = markdown.indexOf(`![${b.alt}](${b.originalSrc})`);
+    return posB - posA;
   });
 
-  return processedMarkdown;
+  sortedImages.forEach(img => {
+    const original = `![${img.alt}](${img.originalSrc})`;
+    const placeholder = `<img src="__MARP_IMAGE_${img.index}__" alt="${img.alt}" />`;
+    processed = processed.replace(original, placeholder);
+  });
+
+  return processed;
 }
 
 
@@ -160,10 +150,21 @@ export function createViteMarpPlugin(
         // Use the theme from frontmatter if specified
         const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string, logger) : theme;
 
-        // Process images in the markdown before Marp CLI
-        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this), isBuild, logger);
-        // Run Marp CLI to process the processed markdown
-        logger.info(`Processing ${id}`);
+        // Collect images for ESM import generation (triggers Astro's asset pipeline)
+        const images = await collectImagesFromMarkdown(code, id, logger);
+
+        // Generate ESM import statements
+        const imageImports = generateImageImports(images);
+
+        // Replace images in markdown with placeholders
+        const processedMarkdown = images.length > 0
+          ? replaceImagesWithPlaceholders(code, images)
+          : code;
+
+        // Run Marp CLI to process the markdown
+        if (config.debug) {
+          logger.info(`Processing ${id}`);
+        }
         const marpResult = await runMarpCli(processedMarkdown, {
           theme: effectiveTheme,
           html: true,
@@ -173,17 +174,47 @@ export function createViteMarpPlugin(
           logger.warn(`[astro-marp] Warning processing ${id}:`, marpResult.error);
         }
 
-        // Use the Marp CLI output directly (it now contains __ASTRO_IMAGE__ placeholders)
+        // Track for build summary
+        if (images.length > 0) {
+          if (!processedAssets.has(id)) {
+            processedAssets.set(id, []);
+          }
+          images.forEach(img => {
+            processedAssets.get(id)!.push({
+              source: img.originalSrc,
+              output: img.resolvedPath,
+              size: 0, // Size will be shown by Astro's optimization pipeline
+              mode: isBuild ? 'build' : 'dev'
+            });
+          });
+        }
+
+        // Use the Marp CLI output
         const finalHtml = marpResult.html;
 
-        // Complete Marp CLI output with optimized images - following exact astro-typst pattern
+        // Generate getImage() calls for optimization
+        const imageOptimizations = images.length > 0
+          ? images.map(img =>
+              `  const optimized${img.index} = await getImage({ src: image${img.index}, format: 'webp', quality: 80 });`
+            ).join('\n')
+          : '';
+
+        // Generate runtime replacement code for image placeholders
+        const imageReplacements = images.length > 0
+          ? images.map(img =>
+              `  processedHtml = processedHtml.replace('__MARP_IMAGE_${img.index}__', optimized${img.index}.src);`
+            ).join('\n')
+          : '';
+
+        // Generate component with ESM imports and getImage() optimization
         const componentCode = `
+${imageImports}
 import { createComponent, render, renderJSX, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
 import { AstroJSX, jsx } from 'astro/jsx-runtime';
 import { readFileSync } from "node:fs";
+${images.length > 0 ? "import { getImage } from 'astro:assets';" : ''}
 
 export const name = "MarpComponent";
-export const html = ${JSON.stringify(finalHtml)};
 export const frontmatter = ${JSON.stringify(parsed.frontmatter)};
 export const file = ${JSON.stringify(id)};
 export const url = ${JSON.stringify(pathToFileURL(id).href)};
@@ -205,8 +236,15 @@ export const Content = createComponent(async (result, _props, slots) => {
     const slot = await slots?.default?.();
     content.file = file;
     content.url = url;
-    // Return unescaped HTML exactly like astro-typst
-    return render\`\${unescapeHTML(compiledContent())}\`;
+
+    // Optimize images using Astro's getImage() - triggers "generating optimized images"
+${imageOptimizations}
+
+    // Replace image placeholders with optimized URLs
+    let processedHtml = compiledContent();
+${imageReplacements}
+
+    return render\`\${unescapeHTML(processedHtml)}\`;
 });
 
 export default Content;

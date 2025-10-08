@@ -1,5 +1,6 @@
 export interface MarpConfig {
   defaultTheme?: string;
+  debug?: boolean;
 }
 
 export interface MarpMeta {

@@ -108,7 +108,7 @@ export const Content = createComponent(async (result, _props, slots) => {
 #### Task 0: Fix Mode Detection Following Official Astro Patterns
 **Priority**: CRITICAL
 **Estimated Effort**: 1-2 hours
-**Status**: IN PROGRESS
+**Status**: ✅ COMPLETED
 **Description**: Replace Vite's `configResolved` mode detection with Astro's `command` parameter to align with official integration patterns (MDX, Markdoc)
 
 **Current Issue**:
@@ -164,11 +164,55 @@ export function createViteMarpPlugin(
 
 **Subtasks**:
 - [x] Research official Astro integrations (MDX, Markdoc, Markdown)
-- [ ] Update `src/index.ts` to pass `command` parameter
-- [ ] Update `src/lib/vite-plugin-marp.ts` to accept and use `command`
-- [ ] Remove `configResolved` hook
-- [ ] Test in both dev and build modes
-- [ ] Update documentation
+- [x] Update `src/index.ts` to pass `command` parameter
+- [x] Update `src/lib/vite-plugin-marp.ts` to accept and use `command`
+- [x] Remove `configResolved` hook
+- [x] Test in both dev and build modes
+- [x] Update documentation
+
+#### Task 0.5: Add Debug Configuration and Clean Console Output
+**Priority**: Medium
+**Estimated Effort**: 1 hour
+**Status**: ✅ COMPLETED
+**Description**: Add optional debug configuration to control verbose logging and clean up console output for better user experience
+
+**Implementation**:
+```typescript
+// Configuration
+export interface MarpConfig {
+  defaultTheme?: string;
+  debug?: boolean;  // Optional debug mode
+}
+
+// Usage
+marp({
+  defaultTheme: 'am_blue',
+  debug: true  // Enable verbose logging
+})
+```
+
+**Changes Made**:
+- ✅ Added `debug?: boolean` to MarpConfig interface
+- ✅ Set default `debug: false` in config initialization
+- ✅ Made "Processing ${id}" log conditional on debug flag
+- ✅ Removed build summary logs from `astro:build:done` hook
+- ✅ Removed "Processed X image(s)" per-file logging
+- ✅ Bundled Sharp as dependency (no longer peer dependency)
+
+**Benefits**:
+- ✅ Cleaner console output by default
+- ✅ Optional verbose logging for debugging
+- ✅ Better user experience with minimal noise
+- ✅ Simplified dependency management
+
+**Subtasks**:
+- [x] Add `debug` property to MarpConfig type
+- [x] Update config initialization with default `debug: false`
+- [x] Make processing logs conditional on debug flag
+- [x] Remove build summary logging
+- [x] Remove per-file image processing logs
+- [x] Move Sharp to dependencies
+- [x] Test build and verify clean output
 
 #### Task 1: Restore Page Routing System
 **Priority**: High

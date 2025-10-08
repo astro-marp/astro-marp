@@ -6,18 +6,26 @@ A powerful Astro integration that transforms `.marp` Markdown slide sources into
 
 ## 🚀 Quick Start
 
-```bash
-# Install the integration
-npm install astro-marp
+### Installation
 
-# Configure in astro.config.mjs
+```bash
+# Install the integration (includes Sharp for image optimization)
+npm install astro-marp
+```
+
+**Note:** Sharp is bundled with the integration for automatic image optimization.
+
+### Configuration
+
+```typescript
+// astro.config.mjs
 import { defineConfig } from 'astro/config';
 import marp from 'astro-marp';
 
 export default defineConfig({
   integrations: [
     marp({
-      defaultTheme: 'am_blue'
+      defaultTheme: 'am_blue'  // or am_brown, am_dark, am_green, am_purple, am_red
     })
   ]
 });
@@ -28,15 +36,26 @@ Set up your own Astro project like the example: [astro-marp-example](https://git
 ## ✨ Features
 
 ### ✅ Implemented
-- **🎨 Built-in Themes**:  themes from [Awesome-Marp](https://github.com/favourhong/Awesome-Marp) are ready to use
-- **🖼️ Image Optimization**: Local images automatically optimized via Astro's pipeline
-- **📚 Content Collections**: Full integration with collection
+- **🎨 Built-in Themes**: 6 themes from [Awesome-Marp](https://github.com/favourhong/Awesome-Marp) are ready to use (am_blue, am_brown, am_dark, am_green, am_purple, am_red)
+- **🖼️ Image Optimization**: Local images automatically optimized to WebP via Astro's pipeline with Sharp
+  - Appears in Astro's "generating optimized images" console output
+  - Automatic format conversion (WebP), quality optimization (80%)
+  - Content-based hashing for caching
+- **📚 Content Collections**: Full integration with Astro's content collections API
 - **⚡ Fast Builds**: Clean build pipeline without conflicts
 - **🔧 TypeScript Support**: Complete type safety and IntelliSense
 - **🎯 Error Handling**: Graceful failure with helpful error messages
 
 ### 🔄 In Progress
 - **🛣️ Direct Routing**: Page-level access to presentations
+
+## 📦 Requirements
+
+- **Node.js**: >=22.0.0
+- **Astro**: ^5.14.0
+- **Sharp**: ^0.33.0 (bundled automatically)
+  - Included as a dependency for image optimization
+  - Supports all major platforms (Linux, macOS, Windows)
 
 ## 📖 Documentation
 

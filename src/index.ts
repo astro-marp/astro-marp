@@ -27,6 +27,7 @@ interface SetupHookParams {
 export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
   const config: Required<MarpConfig> = {
     defaultTheme: 'am_blue',
+    debug: false,
     ...userConfig,
   };
 
@@ -99,12 +100,10 @@ declare module 'astro:content' {
         });
       },
 
-      'astro:build:start': ({ logger }) => {
-        logger.info('Starting Marp build process...');
-      },
-
-      'astro:build:done': ({ logger }) => {
-        logger.info('Marp build process completed');
+      'astro:build:start': async ({ logger }) => {
+        // Clear asset tracking from previous builds
+        const { clearProcessedAssets } = await import('./lib/vite-plugin-marp.js');
+        clearProcessedAssets();
       },
     },
   };

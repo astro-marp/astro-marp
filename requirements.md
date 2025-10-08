@@ -27,6 +27,12 @@ Design and implement a standalone Astro integration plugin (installable via npm)
 - [x] **Theme Application**: Built-in themes (am_blue) rendering correctly
 - [x] **Content Fidelity**: Headings, paragraphs, lists, code blocks all working
 
+#### ✅ Configuration & Developer Experience
+- [x] **Debug Mode**: Optional `debug: true` config for verbose logging
+- [x] **Clean Console Output**: Minimal logging by default
+- [x] **Sharp Integration**: Bundled Sharp dependency for automatic image optimization
+- [x] **Mode Detection**: Proper `command` parameter usage aligned with official integrations
+
 #### ✅ Integration Architecture
 - [x] **astro-typst Pattern**: Complete implementation with renderer + transform
 - [x] **Vite Plugin System**: Custom transformation pipeline working
@@ -102,10 +108,10 @@ Design and implement a standalone Astro integration plugin (installable via npm)
 
 ## Current Technical Debt & Issues
 
-### Mode Detection Not Following Astro Patterns ⚠️ CRITICAL
+### Mode Detection Not Following Astro Patterns ✅ RESOLVED
 **Issue**: Mode detection uses Vite's `configResolved` hook instead of Astro's `command` parameter
 **Impact**: Non-standard implementation that doesn't align with official integrations
-**Status**: ACTIVE FIX IN PROGRESS
+**Status**: RESOLVED - Now uses Astro's `command` parameter pattern
 
 **Current Implementation (INCORRECT)**:
 ```typescript
