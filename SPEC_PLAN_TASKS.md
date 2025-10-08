@@ -105,6 +105,71 @@ export const Content = createComponent(async (result, _props, slots) => {
 
 ### 🚀 Immediate Tasks (Next Sprint)
 
+#### Task 0: Fix Mode Detection Following Official Astro Patterns
+**Priority**: CRITICAL
+**Estimated Effort**: 1-2 hours
+**Status**: IN PROGRESS
+**Description**: Replace Vite's `configResolved` mode detection with Astro's `command` parameter to align with official integration patterns (MDX, Markdoc)
+
+**Current Issue**:
+```typescript
+// INCORRECT: Using Vite's configResolved hook
+configResolved(resolvedConfig) {
+  isProduction = resolvedConfig.command === 'build';
+}
+```
+
+**Problem**:
+- Relies on Vite's lifecycle instead of Astro's integration hooks
+- Doesn't align with how official Astro integrations (MDX, Markdoc) handle mode detection
+- Creates potential timing and reliability issues
+
+**Research Findings**:
+Official Astro integrations (MDX, Markdoc) use:
+1. **`command` parameter** from `astro:config:setup` hook (`'dev' | 'build' | 'preview'`)
+2. **Minimal mode-specific behavior** in transformation pipelines
+3. **Consistent processing** across dev and production
+4. **`astro:server:setup` hook** for dev-only features (watchers)
+
+**Solution**:
+```typescript
+// src/index.ts - Pass command to Vite plugin
+'astro:config:setup': (options) => {
+  const { command, updateConfig, logger } = options;
+  updateConfig({
+    vite: {
+      plugins: [createViteMarpPlugin(config, command, logger)],
+    },
+  });
+}
+
+// src/lib/vite-plugin-marp.ts - Use command directly
+export function createViteMarpPlugin(
+  config: MarpConfig,
+  command: 'dev' | 'build' | 'preview',
+  logger?: any
+): Plugin {
+  const isBuild = command === 'build';
+  // Remove configResolved hook
+  // Use isBuild directly in transform
+}
+```
+
+**Benefits**:
+- ✅ Aligns with official Astro integration patterns
+- ✅ More reliable mode detection
+- ✅ Better integration with Astro's lifecycle
+- ✅ Simpler, cleaner code
+- ✅ Future-proof against Vite API changes
+
+**Subtasks**:
+- [x] Research official Astro integrations (MDX, Markdoc, Markdown)
+- [ ] Update `src/index.ts` to pass `command` parameter
+- [ ] Update `src/lib/vite-plugin-marp.ts` to accept and use `command`
+- [ ] Remove `configResolved` hook
+- [ ] Test in both dev and build modes
+- [ ] Update documentation
+
 #### Task 1: Restore Page Routing System
 **Priority**: High
 **Estimated Effort**: 2-3 days

@@ -40,6 +40,46 @@ export const raw: string;               // Post-processed Markdown
 - **Image Processor**: Local image optimization through Astro's asset pipeline
 - **Content Entry Type**: Integration with Astro's content collection system
 
+### Mode Detection (Dev vs Build)
+
+**Pattern Alignment**: Following official Astro integrations (MDX, Markdoc)
+
+The integration uses Astro's `command` parameter from the `astro:config:setup` hook to detect the current mode, **not** Vite's `configResolved` hook:
+
+```typescript
+// src/index.ts
+'astro:config:setup': (options) => {
+  const { command, updateConfig, logger } = options;
+  // command is 'dev' | 'build' | 'preview'
+  updateConfig({
+    vite: {
+      plugins: [createViteMarpPlugin(config, command, logger)],
+    },
+  });
+}
+
+// src/lib/vite-plugin-marp.ts
+export function createViteMarpPlugin(
+  config: MarpConfig,
+  command: 'dev' | 'build' | 'preview',
+  logger?: any
+): Plugin {
+  const isBuild = command === 'build';
+  // Use isBuild throughout the plugin
+}
+```
+
+**Why This Matters**:
+1. ✅ **Aligns with official patterns**: MDX and Markdoc use the same approach
+2. ✅ **More reliable**: Uses Astro's lifecycle instead of Vite's
+3. ✅ **Simpler code**: No need for `configResolved` hook
+4. ✅ **Future-proof**: Less dependent on Vite internals
+
+**Mode-Specific Behavior**:
+- **Dev mode** (`command === 'dev'`): Uses `/@fs` URLs for images with metadata query params
+- **Build mode** (`command === 'build'`): Uses `emitFile()` for optimized assets with content hashing
+- **Transformation pipeline**: Consistent across all modes (no different error handling)
+
 ## Configuration
 
 The integration supports minimal configuration:
@@ -124,6 +164,12 @@ The plugin includes a comprehensive manual testing protocol using a parent test-
 - No remote image fetching (keeps builds deterministic)
 
 ## Known Issues & Workarounds
+
+### ✅ RESOLVED: Mode Detection Using Vite Instead of Astro
+**Previous Issue**: Used Vite's `configResolved` hook for mode detection instead of Astro's `command` parameter
+**Resolution**: Updated to use `command` parameter from `astro:config:setup` hook, following official Astro integration patterns (MDX, Markdoc)
+**Changed Files**: `src/index.ts`, `src/lib/vite-plugin-marp.ts`
+**Benefits**: More reliable, simpler code, better alignment with Astro ecosystem
 
 ### 1. Page Routing Disabled
 **Issue**: Direct `.marp` page routing disabled due to Vite conflicts

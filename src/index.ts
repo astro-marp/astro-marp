@@ -19,6 +19,7 @@ interface SetupHookParams {
   }) => void;
   updateConfig: (config: any) => void;
   logger: any;
+  command: 'dev' | 'build' | 'preview';
   [key: string]: any;
 }
 
@@ -33,7 +34,7 @@ export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
     name: 'astro-marp',
     hooks: {
       'astro:config:setup': (options) => {
-        const { addPageExtension, addContentEntryType, updateConfig, logger } = options as unknown as SetupHookParams;
+        const { addPageExtension, addContentEntryType, updateConfig, logger, command } = options as unknown as SetupHookParams;
 
         logger.info('Setting up Marp integration...');
 
@@ -78,7 +79,7 @@ declare module 'astro:content' {
         // Add Vite plugin for transformation
         updateConfig({
           vite: {
-            plugins: [createViteMarpPlugin(config, logger)],
+            plugins: [createViteMarpPlugin(config, command, logger)],
           },
         });
         logger.info('Added Vite plugin for .marp transformation');

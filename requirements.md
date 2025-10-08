@@ -100,11 +100,76 @@ Design and implement a standalone Astro integration plugin (installable via npm)
 - Achieved clean integration following proven astro-typst pattern
 - Established solid foundation for remaining features
 
+## Current Technical Debt & Issues
+
+### Mode Detection Not Following Astro Patterns ⚠️ CRITICAL
+**Issue**: Mode detection uses Vite's `configResolved` hook instead of Astro's `command` parameter
+**Impact**: Non-standard implementation that doesn't align with official integrations
+**Status**: ACTIVE FIX IN PROGRESS
+
+**Current Implementation (INCORRECT)**:
+```typescript
+// src/lib/vite-plugin-marp.ts:143-145
+configResolved(resolvedConfig) {
+  isProduction = resolvedConfig.command === 'build';
+}
+```
+
+**Research Results - How Official Astro Integrations Handle Mode**:
+Analyzed MDX, Markdoc, and Markdown integrations from @astrojs/mdx and Astro core:
+1. **Use `command` parameter** from `astro:config:setup` hook (`'dev' | 'build' | 'preview'`)
+2. **Keep transformation pipelines consistent** across dev/build
+3. **Minimize mode-specific behavior** in core transformation logic
+4. **Use `astro:server:setup` hook** for dev-only features (file watchers)
+5. **No different error handling** between dev and production
+
+**Solution (CORRECT)**:
+```typescript
+// src/index.ts - Pass command to Vite plugin
+'astro:config:setup': (options) => {
+  const { command, updateConfig, logger } = options;
+  updateConfig({
+    vite: {
+      plugins: [createViteMarpPlugin(config, command, logger)],
+    },
+  });
+}
+
+// src/lib/vite-plugin-marp.ts - Accept command parameter
+export function createViteMarpPlugin(
+  config: MarpConfig,
+  command: 'dev' | 'build' | 'preview',
+  logger?: any
+): Plugin {
+  const isBuild = command === 'build';
+  return {
+    name: 'vite-plugin-marp',
+    enforce: 'pre',
+    // Remove configResolved hook entirely
+    async transform(code: string, id: string) {
+      // Use isBuild directly
+      const processedMarkdown = await processImagesInMarkdown(
+        code, id, this.emitFile?.bind(this), isBuild, logger
+      );
+      // ...
+    }
+  }
+}
+```
+
+**Benefits of Fix**:
+- ✅ Aligns with official Astro integration patterns (MDX, Markdoc)
+- ✅ More reliable mode detection using Astro's lifecycle
+- ✅ Simpler code without Vite-specific hooks
+- ✅ Better future compatibility with Astro updates
+- ✅ Consistent with astro-typst reference implementation
+
 ## References & Inspirations
 - **Core Astro**: https://github.com/withastro/astro
 - **astro-typst Pattern**: https://github.com/OverflowCat/astro-typst/ ✅ **SUCCESSFULLY IMPLEMENTED**
 - **Marp CLI**: Direct dependency (not npx) ✅ **WORKING**
 - **Testing**: Playwright/Chrome DevTools MCP automation ✅ **IMPLEMENTED**
+- **Official Integrations Research**: MDX (@astrojs/mdx), Markdoc (@astrojs/markdoc), Markdown (Astro core)
 
 Scope (Initial Version):
 1. File Type

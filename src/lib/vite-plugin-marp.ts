@@ -135,14 +135,15 @@ async function processImagesInMarkdown(
 }
 
 
-export function createViteMarpPlugin(config: MarpConfig, logger?: any): Plugin {
-  let isProduction = false;
+export function createViteMarpPlugin(
+  config: MarpConfig,
+  command: 'dev' | 'build' | 'preview',
+  logger?: any
+): Plugin {
+  const isBuild = command === 'build';
   return {
     name: 'vite-plugin-marp',
     enforce: 'pre',
-    configResolved(resolvedConfig) {
-      isProduction = resolvedConfig.command === 'build';
-    },
     load(id) {
       if (!isMarpFile(id)) return;
       logger.debug(`[vite-plugin-marp] Loading id: ${id}`);
@@ -160,7 +161,7 @@ export function createViteMarpPlugin(config: MarpConfig, logger?: any): Plugin {
         const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string, logger) : theme;
 
         // Process images in the markdown before Marp CLI
-        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this), isProduction, logger);
+        const processedMarkdown = await processImagesInMarkdown(code, id, this.emitFile?.bind(this), isBuild, logger);
         // Run Marp CLI to process the processed markdown
         logger.info(`Processing ${id}`);
         const marpResult = await runMarpCli(processedMarkdown, {
