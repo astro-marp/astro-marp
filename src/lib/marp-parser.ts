@@ -25,6 +25,11 @@ export async function parseMarpFile(contents: string): Promise<ParsedMarpFile> {
 }
 
 function extractFrontmatter(contents: string): { frontmatter: Record<string, any>; content: string } {
+  // Validate input
+  if (!contents || typeof contents !== 'string') {
+    return { frontmatter: {}, content: '' };
+  }
+
   const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/;
   const match = contents.match(frontmatterRegex);
 

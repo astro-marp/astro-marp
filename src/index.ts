@@ -4,33 +4,94 @@ import { resolveTheme, validateTheme } from './lib/theme-resolver.js';
 import { createViteMarpPlugin } from './lib/vite-plugin-marp.js';
 
 // Non-public API types (following astro-typst pattern)
+interface ContentEntryData {
+  data: Record<string, unknown>;
+  body: string;
+  slug?: string;
+  rawData?: string;
+}
+
+interface ContentEntryTypeOptions {
+  extensions: string[];
+  getEntryInfo: (params: { fileUrl: URL; contents: string }) => Promise<ContentEntryData>;
+  handlePropagation?: boolean;
+  contentModuleTypes?: string;
+}
+
+interface RendererConfig {
+  name: string;
+  serverEntrypoint: URL;
+}
+
+interface ViteConfig {
+  plugins?: unknown[];
+}
+
+interface AstroConfig {
+  vite?: ViteConfig;
+}
+
+interface AstroIntegrationLogger {
+  info: (message: string) => void;
+  warn: (message: string) => void;
+  error: (message: string) => void;
+  debug?: (message: string) => void;
+}
+
 interface SetupHookParams {
-  addRenderer: (renderer: any) => void;
+  addRenderer: (renderer: RendererConfig) => void;
   addPageExtension: (extension: string) => void;
-  addContentEntryType: (options: {
-    extensions: string[];
-    getEntryInfo: (params: { fileUrl: URL; contents: string }) => Promise<{
-      data: Record<string, any>;
-      body: string;
-      slug?: string;
-      rawData?: string;
-    }>;
-    handlePropagation?: boolean;
-    contentModuleTypes?: string;
-  }) => void;
-  updateConfig: (config: any) => void;
-  logger: any;
+  addContentEntryType: (options: ContentEntryTypeOptions) => void;
+  updateConfig: (config: AstroConfig) => void;
+  logger: AstroIntegrationLogger;
   command: 'dev' | 'build' | 'preview';
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 
+/**
+ * Astro integration for Marp markdown presentations.
+ *
+ * This integration transforms `.marp` Markdown files into optimized presentation pages
+ * with full Astro build pipeline integration, including image optimization and content collections.
+ *
+ * @param userConfig - Configuration options for the integration
+ * @returns Astro integration object
+ *
+ * @example
+ * ```typescript
+ * // astro.config.mjs
+ * import { marp } from 'astro-marp';
+ *
+ * export default defineConfig({
+ *   integrations: [
+ *     marp({
+ *       defaultTheme: 'am_blue',
+ *       debug: false
+ *     })
+ *   ]
+ * });
+ * ```
+ */
 export function marp(userConfig: MarpConfig = {}): AstroIntegration {
-  const config: Required<MarpConfig> = {
+  // Validate and normalize configuration
+  const config = {
     defaultTheme: 'am_blue',
     debug: false,
+    maxSlides: 100,
+    enableMermaid: true,
+    marpCliArgs: [],
     ...userConfig,
   };
+
+  // Validate configuration values
+  if (config.maxSlides && (config.maxSlides < 1 || config.maxSlides > 1000)) {
+    throw new Error('maxSlides must be between 1 and 1000');
+  }
+
+  if (config.marpCliArgs && !Array.isArray(config.marpCliArgs)) {
+    throw new Error('marpCliArgs must be an array of strings');
+  }
 
   return {
     name: 'astro-marp',

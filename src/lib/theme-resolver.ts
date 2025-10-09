@@ -66,6 +66,16 @@ function getAvailableThemes(logger: any): string[] {
 // Cache to prevent duplicate logging
 const resolvedThemes = new Map<string, string>();
 
+/**
+ * Resolves a theme name to its absolute file path.
+ *
+ * Searches for built-in themes in the themes directory, or validates
+ * absolute paths for custom themes.
+ *
+ * @param themeName - Name of the theme to resolve
+ * @param logger - Logger for debug output
+ * @returns Absolute path to the theme file, or fallback theme name
+ */
 export function resolveTheme(themeName: string, logger: any): string {
   // Return cached result if already resolved
   if (resolvedThemes.has(themeName)) {

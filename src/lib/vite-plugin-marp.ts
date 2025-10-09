@@ -44,6 +44,77 @@ function isLocalImage(src: string): boolean {
   return !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:');
 }
 
+/**
+ * Prepares content by parsing frontmatter and resolving theme
+ */
+async function prepareContent(code: string, config: MarpConfig, logger?: any) {
+  const parsed = await parseMarpFile(code);
+  const theme = resolveTheme(config.defaultTheme || 'am_blue', logger);
+  const sourceHash = generateSourceHash(code, theme, config);
+
+  // Use the theme from frontmatter if specified
+  const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string, logger) : theme;
+
+  return { parsed, effectiveTheme, sourceHash };
+}
+
+/**
+ * Processes images in markdown content
+ */
+async function processImages(code: string, id: string, logger?: any) {
+  // Collect images for ESM import generation (triggers Astro's asset pipeline)
+  const images = await collectImagesFromMarkdown(code, id, logger);
+
+  // Generate ESM import statements
+  const imageImports = generateImageImports(images);
+
+  // Replace images in markdown with placeholders
+  const processedMarkdown = images.length > 0
+    ? replaceImagesWithPlaceholders(code, images)
+    : code;
+
+  return { images, processedMarkdown, imageImports };
+}
+
+/**
+ * Generates HTML using Marp CLI
+ */
+async function generateMarpHtml(processedMarkdown: string, effectiveTheme: string, config: MarpConfig, logger?: any) {
+  // Run Marp CLI to process the markdown
+  if (config.debug) {
+    logger.info(`Processing markdown with theme: ${effectiveTheme}`);
+  }
+  const marpResult = await runMarpCli(processedMarkdown, {
+    theme: effectiveTheme,
+    html: true,
+  });
+
+  if (marpResult.error) {
+    logger?.warn(`[astro-marp] Warning processing markdown:`, marpResult.error);
+  }
+
+  return marpResult;
+}
+
+/**
+ * Tracks processed assets for build summary
+ */
+function trackProcessedAssets(id: string, images: ImageInfo[], isBuild: boolean) {
+  if (images.length > 0) {
+    if (!processedAssets.has(id)) {
+      processedAssets.set(id, []);
+    }
+    images.forEach(img => {
+      processedAssets.get(id)!.push({
+        source: img.originalSrc,
+        output: img.resolvedPath,
+        size: 0, // Size will be shown by Astro's optimization pipeline
+        mode: isBuild ? 'build' : 'dev'
+      });
+    });
+  }
+}
+
 // Collect images from markdown for ESM import generation
 async function collectImagesFromMarkdown(
   markdown: string,
@@ -125,6 +196,20 @@ function replaceImagesWithPlaceholders(
 }
 
 
+/**
+ * Creates a Vite plugin for transforming .marp files into Astro components.
+ *
+ * This plugin handles the complete transformation pipeline:
+ * 1. Parses frontmatter from .marp files
+ * 2. Extracts and processes local images for optimization
+ * 3. Runs Marp CLI to generate HTML
+ * 4. Creates virtual ESM modules with Astro components
+ *
+ * @param config - Marp integration configuration
+ * @param command - Current Astro command (dev/build/preview)
+ * @param logger - Optional logger for debug output
+ * @returns Vite plugin configuration
+ */
 export function createViteMarpPlugin(
   config: MarpConfig,
   command: 'dev' | 'build' | 'preview',
@@ -136,58 +221,30 @@ export function createViteMarpPlugin(
     enforce: 'pre',
     load(id) {
       if (!isMarpFile(id)) return;
-      logger.debug(`[vite-plugin-marp] Loading id: ${id}`);
+      logger?.debug(`[vite-plugin-marp] Loading id: ${id}`);
     },
 
     async transform(code: string, id: string) {
       if (!isMarpFile(id)) return;
 
+      // Validate input parameters
+      if (!code || typeof code !== 'string') {
+        logger?.error(`[astro-marp] Invalid code input for ${id}`);
+        return;
+      }
+
       try {
-        const parsed = await parseMarpFile(code);
-        const theme = resolveTheme(config.defaultTheme || 'am_blue', logger);
-        const sourceHash = generateSourceHash(code, theme, config);
+        // Parse and prepare content
+        const { parsed, effectiveTheme, sourceHash } = await prepareContent(code, config, logger);
 
-        // Use the theme from frontmatter if specified
-        const effectiveTheme = parsed.frontmatter.theme ? resolveTheme(parsed.frontmatter.theme as string, logger) : theme;
+        // Process images
+        const { images, processedMarkdown, imageImports } = await processImages(code, id, logger);
 
-        // Collect images for ESM import generation (triggers Astro's asset pipeline)
-        const images = await collectImagesFromMarkdown(code, id, logger);
+        // Generate Marp HTML
+        const marpResult = await generateMarpHtml(processedMarkdown, effectiveTheme, config, logger);
 
-        // Generate ESM import statements
-        const imageImports = generateImageImports(images);
-
-        // Replace images in markdown with placeholders
-        const processedMarkdown = images.length > 0
-          ? replaceImagesWithPlaceholders(code, images)
-          : code;
-
-        // Run Marp CLI to process the markdown
-        if (config.debug) {
-          logger.info(`Processing ${id}`);
-        }
-        const marpResult = await runMarpCli(processedMarkdown, {
-          theme: effectiveTheme,
-          html: true,
-        });
-
-        if (marpResult.error) {
-          logger.warn(`[astro-marp] Warning processing ${id}:`, marpResult.error);
-        }
-
-        // Track for build summary
-        if (images.length > 0) {
-          if (!processedAssets.has(id)) {
-            processedAssets.set(id, []);
-          }
-          images.forEach(img => {
-            processedAssets.get(id)!.push({
-              source: img.originalSrc,
-              output: img.resolvedPath,
-              size: 0, // Size will be shown by Astro's optimization pipeline
-              mode: isBuild ? 'build' : 'dev'
-            });
-          });
-        }
+        // Track assets for build summary
+        trackProcessedAssets(id, images, isBuild);
 
         // Use the Marp CLI output
         const finalHtml = marpResult.html;

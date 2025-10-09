@@ -1,6 +1,14 @@
 export interface MarpConfig {
+  /** Default theme to use for presentations. Must be a built-in theme name. */
   defaultTheme?: string;
+  /** Enable debug logging for development */
   debug?: boolean;
+  /** Maximum number of slides to process (for performance) */
+  maxSlides?: number;
+  /** Enable Mermaid diagram support */
+  enableMermaid?: boolean;
+  /** Custom Marp CLI arguments */
+  marpCliArgs?: string[];
 }
 
 export interface MarpMeta {

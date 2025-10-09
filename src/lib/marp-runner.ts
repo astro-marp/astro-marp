@@ -7,7 +7,14 @@ import { existsSync } from 'node:fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Cache the resolved Marp CLI path to avoid repeated filesystem checks
+let cachedMarpCliPath: string | null = null;
+
 function findMarpCli(): string {
+  if (cachedMarpCliPath !== null) {
+    return cachedMarpCliPath;
+  }
+
   // When running from dist, try different paths to find the marp binary
   const possiblePaths = [
     resolve(__dirname, '../../node_modules/.bin/marp'),
@@ -17,6 +24,7 @@ function findMarpCli(): string {
 
   for (const path of possiblePaths) {
     if (existsSync(path)) {
+      cachedMarpCliPath = path;
       return path;
     }
   }
@@ -36,6 +44,21 @@ export interface MarpRunnerResult {
   error?: string;
 }
 
+export interface MarpCliError extends Error {
+  code?: number;
+  stderr?: string;
+}
+
+/**
+ * Runs Marp CLI to convert markdown to HTML presentation.
+ *
+ * Executes the Marp CLI binary with the provided markdown content and options,
+ * capturing the generated HTML output and slide count.
+ *
+ * @param markdown - Markdown content to process
+ * @param options - Marp CLI execution options
+ * @returns Promise resolving to HTML output and metadata
+ */
 export async function runMarpCli(markdown: string, options: MarpRunnerOptions = {}): Promise<MarpRunnerResult> {
   const { theme = 'default', html = true } = options;
 
@@ -97,16 +120,17 @@ export async function runMarpCli(markdown: string, options: MarpRunnerOptions = 
       });
     });
 
-    marpProcess.on('error', (error) => {
-      resolve({
-        html: `<div class="marp-error">
-          <h1>Marp CLI Process Error</h1>
-          <p>${error.message}</p>
-        </div>`,
-        slidesCount: 1,
-        error: error.message,
-      });
-    });
+    marpProcess.on('error', (error: MarpCliError) => {
+       resolve({
+         html: `<div class="marp-error">
+           <h1>Marp CLI Process Error</h1>
+           <p>${error.message}</p>
+           ${error.code ? `<p>Exit code: ${error.code}</p>` : ''}
+         </div>`,
+         slidesCount: 1,
+         error: error.message,
+       });
+     });
 
     // Send markdown to stdin
     marpProcess.stdin?.write(markdown);
