@@ -12,6 +12,7 @@ The plugin follows the **astro-typst pattern** for deep Astro integration:
 
 ### Core Integration Structure
 - **Main Integration** (`src/index.ts`): Exports the `marp()` function that registers with Astro's `astro:config:setup` hook
+- **Renderer Registration**: Uses `addRenderer()` to register the Marp component renderer (enables src/pages/ routing)
 - **Page Extension**: Uses `addPageExtension('.marp')` to register `.marp` files as routable pages
 - **Content Collections**: Uses `addContentEntryType()` to make `.marp` files queryable via Astro's content APIs
 - **Vite Plugin**: Custom Vite plugin for transforming `.marp` files into virtual modules
@@ -99,9 +100,23 @@ export default defineConfig({
 
 ## Development Workflow
 
-### File Structure
-- `.marp` files are placed in content collections (e.g., `src/content/presentations/`)
-- Each file becomes a routable presentation and content collection entry
+### File Structure - Dual-Mode Support
+
+**Option 1: src/pages/ Routing (Direct Page Access)**
+- Place `.marp` files in `src/pages/` directory
+- Files become directly accessible routes (e.g., `src/pages/demo.marp` → `/demo`)
+- Works exactly like `.mdx` or `.astro` files
+- Ideal for standalone presentations
+
+**Option 2: Content Collections (Programmatic Access)**
+- Place `.marp` files in content collections (e.g., `src/content/presentations/`)
+- Query via `getCollection('presentations')`
+- Generate routes programmatically with `[...slug].astro`
+- Ideal for presentation listings, archives, or dynamic routing
+
+**Both modes work simultaneously** - you can mix and match based on your needs.
+
+### Asset Handling
 - Local images are automatically optimized via Astro's pipeline
 - Remote images pass through unchanged
 
@@ -139,15 +154,23 @@ The plugin includes a comprehensive manual testing protocol using a parent test-
 - **Virtual Modules**: Proper `virtual:astro-marp/<slug>` pattern
 - **Error Handling**: Graceful failure with error components
 
-### 🔄 PENDING (10%)
-- **Page Routing**: Direct `/presentations/[slug]` access (removed due to conflicts)
+### 🔄 PENDING (5%)
 - **Custom Themes**: User-provided SCSS themes (temporarily disabled)
-- **Advanced Features**: Navigation controls, presenter mode
+- **Advanced Features**: Enhanced navigation controls, presenter mode customization
 
-### 🚨 CRITICAL ARCHITECTURAL DECISION
-**Page Extension Conflict Resolution**: Removed `addPageExtension('.marp')` due to Vite import analysis conflicts. This fixed the core image optimization pipeline but requires alternative routing implementation.
+### ✅ RESOLVED: Page Routing Implementation
+**Previous Issue**: Page routing was partially implemented with `addPageExtension()` but missing `addRenderer()`.
 
-**Technical Debt**: Need to restore direct page routing without Vite conflicts, possibly using `injectRoute()` or enhanced content collections.
+**Solution**: Added renderer registration following MDX/Markdown pattern:
+```typescript
+addRenderer({
+  name: 'astro:jsx',
+  serverEntrypoint: new URL('../dist/renderer/index.js', import.meta.url),
+});
+addPageExtension('.marp');
+```
+
+**Result**: `.marp` files now work in both `src/pages/` (direct routing) and `src/content/` (collections) simultaneously.
 
 ## Dependencies
 
@@ -171,12 +194,13 @@ The plugin includes a comprehensive manual testing protocol using a parent test-
 **Changed Files**: `src/index.ts`, `src/lib/vite-plugin-marp.ts`
 **Benefits**: More reliable, simpler code, better alignment with Astro ecosystem
 
-### 1. Page Routing Disabled
-**Issue**: Direct `.marp` page routing disabled due to Vite conflicts
-**Workaround**: Use content collections with manual routing: `src/pages/presentations/[...slug].astro`
-**Fix Needed**: Implement `injectRoute()` or safe page extension alternative
+### ✅ RESOLVED: Page Routing Disabled
+**Previous Issue**: Direct `.marp` page routing was partially implemented but not working
+**Root Cause**: Had `addPageExtension()` but missing `addRenderer()` call
+**Resolution**: Added renderer registration in `astro:config:setup` hook
+**Result**: `.marp` files now work in both `src/pages/` and `src/content/` directories
 
-### 2. Custom Themes Disabled
+### 1. Custom Themes Disabled
 **Issue**: Custom themes cause CSS import errors in Marp CLI
 **Workaround**: Use built-in themes (am_blue, am_brown, am_dark, am_green, am_purple, am_red)
 **Fix Needed**: Enhanced theme path resolution and Marp CLI integration

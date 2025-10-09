@@ -214,16 +214,43 @@ marp({
 - [x] Move Sharp to dependencies
 - [x] Test build and verify clean output
 
-#### Task 1: Restore Page Routing System
+#### Task 1: Enable src/pages/ Routing with Renderer Registration
 **Priority**: High
-**Estimated Effort**: 2-3 days
-**Description**: Re-implement direct page access for `.marp` files without Vite conflicts
+**Estimated Effort**: 1-2 hours
+**Status**: ✅ COMPLETED
+**Description**: Enable `.marp` files in src/pages/ directory by adding missing `addRenderer()` call
+
+**Problem Identified**:
+- Integration had `addPageExtension('.marp')` but missing `addRenderer()`
+- MDX/Markdown/Markdoc all use both APIs together
+- Without renderer, Astro doesn't know HOW to execute .marp components
+- This is why src/pages/ routing wasn't working
+
+**Solution Implemented**:
+```typescript
+// src/index.ts - Added renderer registration
+addRenderer({
+  name: 'astro:jsx',
+  serverEntrypoint: new URL('../dist/renderer/index.js', import.meta.url),
+});
+addPageExtension('.marp');
+```
+
+**Testing Results**:
+- ✅ Created `src/pages/test.marp` in example project
+- ✅ Accessible at `/test` route
+- ✅ Slide navigation working (ArrowRight to slide #2)
+- ✅ Content collections still work
+- ✅ Dual-mode support confirmed
 
 **Subtasks**:
-- [ ] Research alternative to `addPageExtension()` that doesn't conflict
-- [ ] Implement custom route injection using `injectRoute()`
-- [ ] Test routing with both dev and build modes
-- [ ] Ensure compatibility with content collections
+- [x] Research MDX/Markdown integration patterns
+- [x] Add `addRenderer` to SetupHookParams interface
+- [x] Call `addRenderer()` in astro:config:setup hook
+- [x] Build and test integration
+- [x] Create test.marp in src/pages/
+- [x] Verify routing works in dev mode
+- [x] Confirm content collections still work
 
 **Technical Approach**:
 ```typescript

@@ -33,6 +33,12 @@ Design and implement a standalone Astro integration plugin (installable via npm)
 - [x] **Sharp Integration**: Bundled Sharp dependency for automatic image optimization
 - [x] **Mode Detection**: Proper `command` parameter usage aligned with official integrations
 
+#### ✅ Page Routing & Dual-Mode Support
+- [x] **src/pages/ Routing**: `.marp` files work directly in src/pages/ directory
+- [x] **Content Collections**: `.marp` files work in src/content/ collections
+- [x] **Renderer Registration**: Proper `addRenderer()` integration like MDX/Markdown
+- [x] **Dual-Mode Support**: Both routing methods work simultaneously
+
 #### ✅ Integration Architecture
 - [x] **astro-typst Pattern**: Complete implementation with renderer + transform
 - [x] **Vite Plugin System**: Custom transformation pipeline working

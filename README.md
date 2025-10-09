@@ -2,7 +2,7 @@
 
 A powerful Astro integration that transforms `.marp` Markdown slide sources into optimized presentation pages with full asset pipeline integration.
 
-**Status: 85% Complete** ✅ **Production Ready for Core Features**
+**Status: 95% Complete** ✅ **Production Ready with Dual-Mode Routing**
 
 ## 🚀 Quick Start
 
@@ -33,6 +33,70 @@ export default defineConfig({
 
 Set up your own Astro project like the example: [astro-marp-example](https://github.com/astro-marp/astro-marp-example)
 
+## 📝 Usage
+
+### Option 1: Direct Page Routing (src/pages/)
+
+Create a `.marp` file in your `src/pages/` directory:
+
+```markdown
+<!-- src/pages/my-presentation.marp -->
+---
+marp: true
+theme: am_blue
+title: "My Presentation"
+headingDivider: 2
+---
+
+# Welcome
+
+This is my presentation
+
+## Slide 2
+
+More content here
+```
+
+Access at: `http://localhost:4321/my-presentation`
+
+### Option 2: Content Collections (src/content/)
+
+Create a collection and query programmatically:
+
+```markdown
+<!-- src/content/presentations/demo.marp -->
+---
+marp: true
+theme: am_blue
+title: "Demo Presentation"
+---
+
+# Demo
+
+Content here
+```
+
+Query in your pages:
+
+```astro
+---
+// src/pages/presentations/[...slug].astro
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const presentations = await getCollection('presentations');
+  return presentations.map((presentation) => ({
+    params: { slug: presentation.slug },
+    props: { presentation },
+  }));
+}
+
+const { presentation } = Astro.props;
+const { Content } = await presentation.render();
+---
+<Content />
+```
+
 ## ✨ Features
 
 ### ✅ Implemented
@@ -41,13 +105,15 @@ Set up your own Astro project like the example: [astro-marp-example](https://git
   - Appears in Astro's "generating optimized images" console output
   - Automatic format conversion (WebP), quality optimization (80%)
   - Content-based hashing for caching
+- **🛣️ Dual-Mode Routing**:
+  - **src/pages/**: Direct page routing (e.g., `src/pages/demo.marp` → `/demo`)
+  - **src/content/**: Content collections with programmatic access
+  - Both modes work simultaneously
 - **📚 Content Collections**: Full integration with Astro's content collections API
 - **⚡ Fast Builds**: Clean build pipeline without conflicts
 - **🔧 TypeScript Support**: Complete type safety and IntelliSense
 - **🎯 Error Handling**: Graceful failure with helpful error messages
-
-### 🔄 In Progress
-- **🛣️ Direct Routing**: Page-level access to presentations
+- **🐛 Debug Mode**: Optional `debug: true` config for verbose logging
 
 ## 📦 Requirements
 
