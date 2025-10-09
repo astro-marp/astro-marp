@@ -32,6 +32,7 @@ Design and implement a standalone Astro integration plugin (installable via npm)
 - [x] **Clean Console Output**: Minimal logging by default
 - [x] **Sharp Integration**: Bundled Sharp dependency for automatic image optimization
 - [x] **Mode Detection**: Proper `command` parameter usage aligned with official integrations
+- [x] **Named Export Pattern**: Changed from default to named export (`import { marp } from 'astro-marp'`) to match standard Astro plugin patterns
 
 #### ✅ Page Routing & Dual-Mode Support
 - [x] **src/pages/ Routing**: `.marp` files work directly in src/pages/ directory
@@ -234,9 +235,13 @@ Scope (Initial Version):
        - Show overlay with meaningful message.
 
 6. Configuration Shape (MUST)
+   ```javascript
+   import { marp } from 'astro-marp';
+   
    marp({
         defaultTheme: 'am_blue',
    })
+   ```
 
 7. Lifecycle Integration (Astro API)
    - config:setup:

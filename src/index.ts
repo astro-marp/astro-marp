@@ -25,7 +25,7 @@ interface SetupHookParams {
 }
 
 
-export default function marp(userConfig: MarpConfig = {}): AstroIntegration {
+export function marp(userConfig: MarpConfig = {}): AstroIntegration {
   const config: Required<MarpConfig> = {
     defaultTheme: 'am_blue',
     debug: false,

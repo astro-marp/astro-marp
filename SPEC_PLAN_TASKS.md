@@ -176,6 +176,33 @@ export function createViteMarpPlugin(
 **Status**: ✅ COMPLETED
 **Description**: Add optional debug configuration to control verbose logging and clean up console output for better user experience
 
+#### Task 0.6: Update Export Pattern to Named Export
+**Priority**: Medium
+**Estimated Effort**: 30 minutes
+**Status**: ✅ COMPLETED
+**Description**: Change from default export to named export to match standard Astro plugin patterns
+
+**Problem**: Integration used default export (`import marp from 'astro-marp'`) which doesn't match standard Astro plugin patterns like astro-typst (`import { typst } from 'astro-typst'`)
+
+**Solution Implemented**:
+- Changed `export default function marp` to `export function marp` in `src/index.ts`
+- Updated documentation in `README.md` and `CLAUDE.md` to show `import { marp } from 'astro-marp'`
+- Verified build compiles correctly with named export
+- Package.json exports support both patterns for backward compatibility
+
+**Benefits**:
+- ✅ Aligns with standard Astro plugin patterns
+- ✅ Consistent with other ecosystem integrations
+- ✅ Better developer experience and expectations
+- ✅ Maintains backward compatibility through package.json exports
+
+**Subtasks**:
+- [x] Change export from default to named in src/index.ts
+- [x] Update README.md import examples
+- [x] Update CLAUDE.md import examples
+- [x] Build and verify named export works
+- [x] Test package.json exports compatibility
+
 **Implementation**:
 ```typescript
 // Configuration

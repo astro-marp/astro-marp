@@ -87,7 +87,7 @@ The integration supports minimal configuration:
 ```javascript
 // astro.config.mjs
 import { defineConfig } from 'astro/config';
-import marp from 'astro-marp';
+import { marp } from 'astro-marp';
 
 export default defineConfig({
   integrations: [
