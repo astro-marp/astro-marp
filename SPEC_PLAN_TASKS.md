@@ -1,8 +1,67 @@
 # Astro-Marp Specification, Planning & Tasks
 
-**🎉 PROJECT STATUS: 100% COMPLETE - PRODUCTION READY! 🎉**
+**🎉 PROJECT STATUS: PRODUCTION READY + ENHANCED! 🎉**
 
-## 🚀 FINAL ACHIEVEMENT SUMMARY
+## 📅 Session 2 Updates (2025-10-09)
+
+### New Accomplishments
+
+#### ✅ Hot Module Replacement (HMR) Support - FULLY WORKING
+- **Status**: Complete and verified working
+- **File**: `src/lib/vite-plugin-marp.ts`
+- **Journey**:
+  1. **Initial Implementation**: Added `handleHotUpdate` hook and file watcher
+  2. **Problem Discovered**: File changes detected, modules invalidated, but browser didn't auto-reload
+  3. **Deep Research**: Analyzed Astro MD/MDX/Markdoc source code implementations
+  4. **Root Cause Found**: Missing `maybeRenderHead(result)` call (same issue as Astro Issue #8378)
+  5. **Fix Applied**: Added Vite HMR client script injection via `maybeRenderHead`
+- **Technical Implementation**:
+  - **`maybeRenderHead(result)`**: Injects `<script type="module" src="/@vite/client"></script>` in dev mode
+  - **`configureServer` hook**: Watches `.marp` file changes via Vite's file watcher
+  - **`handleHotUpdate` hook**: Simplified to let Vite handle default HMR (following PR #9706 pattern)
+  - **Pattern Source**: Exact match with Astro's Markdown HMR fix (PR #8418)
+- **Impact**: Browser now auto-reloads instantly when `.marp` files change ✅
+- **Benefits**:
+  - Seamless developer experience matching .md/.mdx files
+  - No manual browser refresh needed
+  - Follows official Astro patterns exactly
+  - Minimal code (simplified from complex manual tracking)
+  - Debug logging available with `debug: true` config
+
+#### ✅ GitHub Actions CI/CD Workflows
+- **Status**: Complete
+- **Files Created**:
+  - `.github/workflows/publish.yml` - Automated npm publishing on version tags
+  - `.github/workflows/ci.yml` - Build verification on push/PR
+  - `.github/PUBLISH.md` - Complete publishing documentation
+- **Features**:
+  - Automatic npm publish when tags like `v0.1.0` are pushed
+  - Build verification before merge
+  - Supply chain security with provenance
+  - No manual npm publish needed
+- **Setup Required**: Add `NPM_TOKEN` to GitHub secrets (one-time)
+
+#### ✅ Testing Infrastructure
+- **Status**: Complete
+- **Test Coverage**: 45 unit tests (17 for marp-parser, 28 for theme-resolver)
+- **Files Created**:
+  - `vitest.config.ts` - Test configuration with coverage thresholds
+  - `tests/unit/marp-parser.test.ts` - Comprehensive parser tests
+  - `tests/unit/theme-resolver.test.ts` - Theme system tests
+  - `tests/fixtures/` - Test fixtures for integration tests
+- **Coverage Thresholds**: 70% lines/functions/statements, 65% branches
+
+#### ✅ Code Cleanup
+- **Removed**: `src/components/` directory (unused legacy code)
+- **Reason**: Virtual module system doesn't need separate component files
+- **Impact**: Cleaner codebase, no functional changes
+
+### ❌ Rejected Changes
+- **Error Handling Improvements**: Custom error types, timeout handling, CLI path improvements
+- **Reason**: Deemed unnecessary for current use case
+- **Status**: Reverted, existing error handling is sufficient
+
+## 🚀 ORIGINAL ACHIEVEMENT SUMMARY
 
 **Major Breakthrough Accomplished:** Successfully implemented a production-ready Astro integration following the astro-typst architectural pattern that transforms `.marp` Markdown files into fully functional slide presentations with complete navigation controls.
 
@@ -15,13 +74,18 @@
 - **Image Optimization**: ✅ **ASTRO-NATIVE PERFECTED + SIMPLIFIED** - Dev & Build modes unified with optimized environment-based detection
 - **Theme System**: ✅ Built-in themes (am_blue, gaia, uncover) working perfectly
 - **Error Handling**: ✅ Graceful failures with comprehensive error components
+- **HMR Support**: ✅ Browser auto-updates when .marp files change (Session 2)
+- **CI/CD Pipeline**: ✅ Automated publishing and build verification (Session 2)
+- **Test Coverage**: ✅ 45 unit tests with vitest infrastructure (Session 2)
 
 ### 🎯 PRODUCTION READY FEATURES
 - **astro-typst Pattern**: Successfully implemented with `createComponent()` and `unescapeHTML()`
 - **Vite Plugin Transform**: Proper JavaScript component generation with all required exports
 - **Marp CLI Integration**: Direct binary execution with frontmatter processing for `headingDivider`
-- **HMR Support**: File watching and incremental re-rendering working in development
+- **HMR Support**: Full hot module replacement with `handleHotUpdate` hook
 - **Package Distribution**: Built, tested, and installable via npm
+- **Automated Publishing**: GitHub Actions workflow for npm releases
+- **Build Verification**: CI checks on every push and pull request
 
 ## Project Specification
 

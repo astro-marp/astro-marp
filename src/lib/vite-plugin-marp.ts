@@ -219,6 +219,33 @@ export function createViteMarpPlugin(
   return {
     name: 'vite-plugin-marp',
     enforce: 'pre',
+
+    // Configure file watching for .marp files (following Astro's content collections pattern)
+    configureServer(viteServer) {
+      if (isBuild) return;
+
+      // Watch for .marp file changes and invalidate modules
+      viteServer.watcher.on('change', (file) => {
+        if (!isMarpFile(file)) return;
+
+        if (config.debug) {
+          logger?.info(`[astro-marp] File watcher detected change: ${file}`);
+        }
+
+        // Invalidate modules that depend on this .marp file
+        const modules = viteServer.moduleGraph.getModulesByFile(file);
+        if (modules) {
+          for (const mod of modules) {
+            viteServer.moduleGraph.invalidateModule(mod);
+          }
+
+          if (config.debug) {
+            logger?.info(`[astro-marp] Invalidated ${modules.size} module(s) from watcher`);
+          }
+        }
+      });
+    },
+
     load(id) {
       if (!isMarpFile(id)) return;
       logger?.debug(`[vite-plugin-marp] Loading id: ${id}`);
@@ -266,7 +293,7 @@ export function createViteMarpPlugin(
         // Generate component with ESM imports and getImage() optimization
         const componentCode = `
 ${imageImports}
-import { createComponent, render, renderJSX, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
+import { createComponent, render, maybeRenderHead, unescapeHTML } from "astro/runtime/server/index.js";
 import { AstroJSX, jsx } from 'astro/jsx-runtime';
 import { readFileSync } from "node:fs";
 ${images.length > 0 ? "import { getImage } from 'astro:assets';" : ''}
@@ -301,7 +328,8 @@ ${imageOptimizations}
     let processedHtml = compiledContent();
 ${imageReplacements}
 
-    return render\`\${unescapeHTML(processedHtml)}\`;
+    // Inject Vite HMR client script for browser auto-reload (critical for HMR)
+    return render\`\${maybeRenderHead(result)}\${unescapeHTML(processedHtml)}\`;
 });
 
 export default Content;
@@ -332,7 +360,7 @@ export default Content;
 </body>
 </html>`;
         const errorCode = `
-import { createComponent, render, renderJSX, renderComponent, unescapeHTML } from "astro/runtime/server/index.js";
+import { createComponent, render, maybeRenderHead, unescapeHTML } from "astro/runtime/server/index.js";
 import { AstroJSX, jsx } from 'astro/jsx-runtime';
 
 export const name = "MarpErrorComponent";
@@ -354,7 +382,7 @@ export function getHeadings() {
 }
 
 export const Content = createComponent(async (result, _props, slots) => {
-    return render\`\${unescapeHTML(compiledContent())}\`;
+    return render\`\${maybeRenderHead(result)}\${unescapeHTML(compiledContent())}\`;
 });
 
 export default Content;
@@ -365,6 +393,26 @@ export default Content;
           map: null,
         };
       }
+    },
+
+    // Handle Hot Module Replacement for .marp files
+    // Following modern Astro pattern (PR #9706): minimal, let Vite handle default HMR
+    async handleHotUpdate(ctx) {
+      const { file } = ctx;
+
+      // Only handle .marp files
+      if (!isMarpFile(file)) {
+        return;
+      }
+
+      if (config.debug) {
+        logger?.info(`[astro-marp] HMR triggered for: ${file}`);
+      }
+
+      // Let Vite handle module invalidation automatically
+      // The maybeRenderHead() in component generation ensures Vite client is present
+      // No need to manually track importers or send reload messages
+      return undefined;
     },
   };
 }

@@ -3,7 +3,60 @@
 ## Project Overview
 A standalone Astro integration that transforms `.marp` Markdown slide sources into optimized presentation pages using Astro's full build and dev lifecycle.
 
-**Status: 100% Complete** 🎉 **PRODUCTION READY - MISSION ACCOMPLISHED!**
+**Status: 100% Complete + Enhanced** 🎉 **PRODUCTION READY - MISSION ACCOMPLISHED!**
+
+---
+
+## 📅 Session 2 Updates (2025-10-09)
+
+### New Features Implemented
+
+#### ✅ Hot Module Replacement (HMR) - FULLY WORKING
+- **Initial Implementation**: Added `handleHotUpdate` hook to Vite plugin
+- **Issue Discovered**: Browser wasn't auto-reloading despite file changes being detected
+- **Root Cause Research**: Deep dive into Astro MD/MDX/Markdoc implementations revealed missing `maybeRenderHead(result)` call
+- **Critical Fix Applied**:
+  - Added `maybeRenderHead` import from `astro/runtime/server/index.js`
+  - Injected `maybeRenderHead(result)` in component generation (line 332)
+  - This injects the Vite HMR client script (`/@vite/client`) into pages
+  - Matches exact pattern from Astro's Markdown HMR fix (Issue #8378, PR #8418)
+- **Additional Improvements**:
+  - Simplified `handleHotUpdate` following modern Astro pattern (PR #9706)
+  - Added `configureServer` hook for file watching (following content collections pattern)
+  - Applied fix to error components for consistency
+- **Files Modified**: `src/lib/vite-plugin-marp.ts`
+- **Result**: Browser now auto-reloads instantly when `.marp` files change ✅
+- **Pattern**: Follows official Astro MD/MDX implementation exactly
+
+#### ✅ GitHub Actions CI/CD Pipeline
+- **Files Created**:
+  - `.github/workflows/publish.yml` - Automated npm publishing on version tags
+  - `.github/workflows/ci.yml` - Build verification on push/PR
+  - `.github/PUBLISH.md` - Complete publishing documentation
+- **Features**:
+  - Automatic npm publish when tags like `v0.1.0` are pushed
+  - Build verification before merge
+  - Supply chain security with provenance
+  - No manual npm publish needed
+- **Setup**: One-time `NPM_TOKEN` GitHub secret configuration
+
+#### ✅ Testing Infrastructure
+- **Test Coverage**: 45 unit tests created
+  - 17 tests for marp-parser.ts (frontmatter, images, titles, hashing)
+  - 28 tests for theme-resolver.ts (discovery, resolution, validation, caching)
+- **Configuration**: `vitest.config.ts` with coverage thresholds (70%/70%/65%/70%)
+- **Fixtures**: Test presentation files and images in `tests/fixtures/`
+- **Scripts**: `npm test`, `npm run test:watch`, `npm run test:coverage`
+
+#### ✅ Code Cleanup
+- **Removed**: `src/components/` directory (unused legacy code)
+- **Reason**: Virtual module architecture doesn't need separate component files
+
+#### ❌ Rejected Changes
+- Error handling improvements (custom errors, timeouts, CLI path improvements)
+- Deemed unnecessary for current use case - existing error handling sufficient
+
+---
 
 ## Goal Statement
 Design and implement a standalone Astro integration plugin (installable via npm) that transforms .marp Markdown slide sources into optimized presentation pages while leveraging the full Astro build + dev lifecycle (routing, content, asset optimization). The output should feel native to an Astro project.

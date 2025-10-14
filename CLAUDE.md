@@ -121,7 +121,11 @@ export default defineConfig({
 - Remote images pass through unchanged
 
 ### Key Features
-- **HMR Support**: Changes to `.marp` files trigger automatic re-rendering
+- **HMR Support**: Changes to `.marp` files trigger automatic browser reload
+  - **Critical Component**: `maybeRenderHead(result)` injects Vite HMR client script
+  - **Pattern Source**: Matches Astro's Markdown HMR implementation (Issue #8378, PR #8418)
+  - **Technical**: Uses `configureServer` file watcher + simplified `handleHotUpdate` hook
+  - **Result**: Browser auto-reloads instantly without manual refresh
 - **Content Collections**: Query presentations via `getCollection('presentations')`
 - **Asset Optimization**: Local images processed through Astro's optimization
 - **Dynamic Theme System**: Automatic discovery of available themes from filesystem, no hardcoded lists
@@ -210,6 +214,13 @@ addPageExtension('.marp');
 **Impact**: Cosmetic only, doesn't affect functionality
 **Workaround**: Prefix with underscore: `_test.marp` to ignore
 
+### 4. Astro Internal Import Warning (Cosmetic)
+**Issue**: Vite warning about unused imports in Astro 5.14.x internal files: `"matchHostname", "matchPathname", "matchPort" and "matchProtocol" are imported from external module "@astrojs/internal-helpers/remote" but never used`
+**Source**: Astro's internal asset handling modules (`remotePattern.js`, `service.js`)
+**Impact**: Cosmetic only - Vite tree-shaking warning, doesn't affect functionality
+**Cause**: Unused imports in Astro's own code, not caused by astro-marp integration
+**Workaround**: Can be safely ignored; will likely be fixed in future Astro releases
+
 ## Debug Information
 
 ### Successful Build Indicators
@@ -231,6 +242,109 @@ addPageExtension('.marp');
 
 ❌ Images showing as ${image0.src} in output
    → Template literal replacement not working, check runtime replacement logic
+
+❌ Browser not auto-reloading when .marp files change
+   → Missing maybeRenderHead(result) call - Vite HMR client script not injected
+   → Check component generation includes: return render`${maybeRenderHead(result)}${unescapeHTML(html)}`;
+```
+
+## HMR Technical Implementation
+
+### Critical Pattern (Issue #8378 Solution)
+
+The integration uses the exact same HMR pattern as Astro's Markdown files:
+
+```typescript
+// Component generation (src/lib/vite-plugin-marp.ts:296, 332)
+import { createComponent, render, maybeRenderHead, unescapeHTML } from "astro/runtime/server/index.js";
+
+export const Content = createComponent(async (result, _props, slots) => {
+    // Image optimization...
+    let processedHtml = compiledContent();
+    // Image placeholder replacement...
+
+    // ✅ CRITICAL: Inject Vite HMR client script
+    return render`${maybeRenderHead(result)}${unescapeHTML(processedHtml)}`;
+});
+```
+
+### Why `maybeRenderHead` is Required
+
+**What it does:**
+- Injects `<script type="module" src="/@vite/client"></script>` in dev mode
+- This script connects browser to Vite's WebSocket server
+- Browser receives HMR update messages and auto-reloads
+
+**Without it:**
+- File changes are detected ✅
+- Modules are invalidated ✅
+- Transform pipeline runs ✅
+- Browser doesn't reload ❌ (no HMR client script)
+
+### HMR Hook Implementation
+
+```typescript
+// File watcher (src/lib/vite-plugin-marp.ts:224-247)
+configureServer(viteServer) {
+  if (isBuild) return;
+
+  viteServer.watcher.on('change', (file) => {
+    if (!isMarpFile(file)) return;
+
+    const modules = viteServer.moduleGraph.getModulesByFile(file);
+    if (modules) {
+      for (const mod of modules) {
+        viteServer.moduleGraph.invalidateModule(mod);
+      }
+    }
+  });
+}
+
+// HMR handler (src/lib/vite-plugin-marp.ts:398-416)
+async handleHotUpdate(ctx) {
+  const { file } = ctx;
+  if (!isMarpFile(file)) return;
+
+  // Let Vite handle module invalidation automatically
+  // Following modern Astro pattern (PR #9706)
+  return undefined;
+}
+```
+
+### Pattern Comparison
+
+| Approach | Markdown (.md) | astro-marp (.marp) |
+|----------|---------------|-------------------|
+| Vite Client Injection | `maybeRenderHead` | `maybeRenderHead` ✅ |
+| File Watcher | Built-in | `configureServer` ✅ |
+| HMR Handler | None (Vite default) | Simplified (returns `undefined`) ✅ |
+| Result | Auto-reload ✅ | Auto-reload ✅ |
+
+### Debugging HMR
+
+**Enable debug mode:**
+```javascript
+// astro.config.mjs
+marp({ defaultTheme: 'am_blue', debug: true })
+```
+
+**Expected console output:**
+```
+[astro-marp] File watcher detected change: /path/to/file.marp
+[astro-marp] Invalidated X module(s) from watcher
+[astro-marp] HMR triggered for: /path/to/file.marp
+```
+
+**Browser console should show:**
+```
+[vite] connected
+[vite] hot updated: /path/to/file.marp
+```
+
+**Check for Vite client script:**
+```bash
+# View page source in dev mode
+# Should see: <script type="module" src="/@vite/client"></script>
 ```
 
 ## Maintenance Notes
