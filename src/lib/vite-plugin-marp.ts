@@ -173,6 +173,7 @@ function generateImageImports(images: ImageInfo[]): string {
 }
 
 // Replace images in markdown with placeholders
+// IMPORTANT: Keep Markdown syntax to preserve Marp directives (height:300px, bg, etc.)
 function replaceImagesWithPlaceholders(
   markdown: string,
   images: ImageInfo[]
@@ -187,8 +188,11 @@ function replaceImagesWithPlaceholders(
   });
 
   sortedImages.forEach(img => {
+    // Keep Markdown syntax, replace only the image path
+    // This preserves Marp directives like ![height:300px](image.png)
+    // which Marp CLI will convert to <img style="height:300px;" />
     const original = `![${img.alt}](${img.originalSrc})`;
-    const placeholder = `<img src="__MARP_IMAGE_${img.index}__" alt="${img.alt}" />`;
+    const placeholder = `![${img.alt}](__MARP_IMAGE_${img.index}__)`;
     processed = processed.replace(original, placeholder);
   });
 

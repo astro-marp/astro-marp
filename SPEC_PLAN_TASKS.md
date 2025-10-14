@@ -28,6 +28,37 @@
   - Minimal code (simplified from complex manual tracking)
   - Debug logging available with `debug: true` config
 
+#### ✅ Marp Image Directives Preservation
+- **Status**: Complete and working
+- **File**: `src/lib/vite-plugin-marp.ts` (lines 175-200)
+- **Problem Identified**:
+  - Image replacement converted Markdown to HTML **before** Marp CLI processed it
+  - Original approach: `![height:300px](image.png)` → `<img src="__PLACEHOLDER__" alt="height:300px" />`
+  - Marp CLI received HTML, lost directive information
+  - Result: Style attributes never applied (no `style="height:300px;"`)
+- **Solution Applied**:
+  - Keep Markdown syntax, replace **only the image path**
+  - New approach: `![height:300px](image.png)` → `![height:300px](__PLACEHOLDER__)`
+  - Marp CLI processes directive correctly → `<img src="__PLACEHOLDER__" style="height:300px;" />`
+  - Final replacement: optimized URL replaces placeholder
+- **Processing Flow**:
+  ```
+  1. Original:    ![height:300px](./images/chart.png)
+  2. Placeholder: ![height:300px](__MARP_IMAGE_0__)
+  3. Marp CLI:    <img src="__MARP_IMAGE_0__" style="height:300px;" />
+  4. Final:       <img src="/_astro/chart.abc123.png" style="height:300px;" />
+  ```
+- **Supported Directives**:
+  - **Size directives**: `height:`, `width:`, `w:`, `h:`
+  - **Background**: `bg`, `bg fit`, `bg contain`, `bg cover`
+  - **Position**: `bg left`, `bg right`, `bg center`
+  - **Filters**: `blur:`, `brightness:`, `contrast:`, `grayscale:`
+- **Impact**: All Marp image directives now work with optimized images ✅
+- **Benefits**:
+  - Preserves full Marp functionality
+  - Images still optimized by Astro's pipeline
+  - Maintains backward compatibility
+
 #### ✅ GitHub Actions CI/CD Workflows
 - **Status**: Complete
 - **Files Created**:

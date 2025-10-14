@@ -28,6 +28,25 @@ A standalone Astro integration that transforms `.marp` Markdown slide sources in
 - **Result**: Browser now auto-reloads instantly when `.marp` files change ✅
 - **Pattern**: Follows official Astro MD/MDX implementation exactly
 
+#### ✅ Marp Image Directives Preservation
+- **Issue Discovered**: Image replacement was converting Markdown to HTML before Marp CLI processed it
+- **Problem**: Marp directives like `![height:300px](image.png)` were lost
+  - We replaced: `![height:300px](./images/file.png)` → `<img src="__PLACEHOLDER__" alt="height:300px" />`
+  - Marp CLI saw HTML, not its directive, so `style="height:300px;"` was never applied
+- **Fix Applied**: Keep Markdown syntax, replace only the image path
+  - Now: `![height:300px](./images/file.png)` → `![height:300px](__PLACEHOLDER__)`
+  - Marp CLI processes directive: `![height:300px](__PLACEHOLDER__)` → `<img src="__PLACEHOLDER__" style="height:300px;" />`
+  - We replace placeholder with optimized URL: `<img src="/_astro/file.hash.png" style="height:300px;" />`
+- **Supported Directives** (now working):
+  - `![height:300px](image.png)` → `style="height:300px;"`
+  - `![width:500px](image.png)` → `style="width:500px;"`
+  - `![w:200px h:150px](image.png)` → `style="width:200px; height:150px;"`
+  - `![bg](image.png)` → Background image for slide
+  - `![bg fit](image.png)` → Background with fit
+  - `![bg left](image.png)` → Background positioned left
+- **File Modified**: `src/lib/vite-plugin-marp.ts` (lines 175-200)
+- **Result**: All Marp image directives now work correctly with optimized images ✅
+
 #### ✅ GitHub Actions CI/CD Pipeline
 - **Files Created**:
   - `.github/workflows/publish.yml` - Automated npm publishing on version tags

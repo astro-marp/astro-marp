@@ -30,10 +30,16 @@ export const raw: string;               // Post-processed Markdown
 
 ### Transformation Pipeline
 1. **Parse** `.marp` file and extract frontmatter
-2. **Image Processing**: Collect local image references, optimize via Astro's `getImage()`, rewrite URLs
+2. **Image Processing**: Collect local image references and replace paths with placeholders
+   - **Critical**: Keep Markdown syntax intact to preserve Marp directives
+   - Example: `![height:300px](./file.png)` → `![height:300px](__MARP_IMAGE_0__)`
+   - This preserves directives like `height:`, `width:`, `bg`, etc.
 3. **Marp CLI Execution**: Pipe processed Markdown to `marp --stdin --theme <path> -o -`
-4. **Module Generation**: Create virtual module with rendered HTML + metadata
-5. **Content Collection**: Register entry for querying via `getCollection()`
+   - Marp CLI processes directives: `![height:300px](__PLACEHOLDER__)` → `<img src="__PLACEHOLDER__" style="height:300px;" />`
+4. **Image Optimization**: Process images via Astro's `getImage()` and replace placeholders in HTML
+   - Final: `<img src="__MARP_IMAGE_0__" style="height:300px;" />` → `<img src="/_astro/file.hash.png" style="height:300px;" />`
+5. **Module Generation**: Create virtual module with rendered HTML + metadata
+6. **Content Collection**: Register entry for querying via `getCollection()`
 
 ### Key Components
 - **Vite Plugin** (`src/lib/vite-plugin-marp.ts`): Handles file transformation and virtual module creation
@@ -126,6 +132,12 @@ export default defineConfig({
   - **Pattern Source**: Matches Astro's Markdown HMR implementation (Issue #8378, PR #8418)
   - **Technical**: Uses `configureServer` file watcher + simplified `handleHotUpdate` hook
   - **Result**: Browser auto-reloads instantly without manual refresh
+- **Marp Image Directives**: Full support for Marp's image syntax with Astro optimization
+  - **Size directives**: `![height:300px](image.png)`, `![w:500px h:300px](image.png)`
+  - **Background images**: `![bg](image.png)`, `![bg fit](image.png)`, `![bg left](image.png)`
+  - **Filters**: `![blur:5px](image.png)`, `![brightness:150%](image.png)`
+  - **Implementation**: Preserves Markdown syntax until after Marp CLI processing
+  - **Result**: Directives convert to proper styles while images are optimized
 - **Content Collections**: Query presentations via `getCollection('presentations')`
 - **Asset Optimization**: Local images processed through Astro's optimization
 - **Dynamic Theme System**: Automatic discovery of available themes from filesystem, no hardcoded lists

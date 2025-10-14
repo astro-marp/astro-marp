@@ -30,7 +30,41 @@
 - **Result**: Browser now auto-reloads instantly when `.marp` files change ✅
 - **Testing**: Verified seamless HMR matching .md/.mdx file behavior
 
-#### 2. GitHub Actions CI/CD Pipeline ✅
+#### 2. Marp Image Directives Preservation ✅
+- **Critical Issue Discovered**: Image replacement was breaking Marp's image directives
+- **Problem Details**:
+  - Original implementation replaced Markdown with HTML before Marp CLI processed it
+  - Example: `![height:300px](./images/chart.png)` → `<img src="__PLACEHOLDER__" alt="height:300px" />`
+  - Marp CLI received HTML instead of Markdown, couldn't parse directives
+  - Result: Size/background/filter directives were completely lost
+- **Solution Implemented**:
+  - Changed replacement strategy to keep Markdown syntax intact
+  - Only replace the image path, preserve directive syntax
+  - Flow: `![height:300px](./file.png)` → `![height:300px](__PLACEHOLDER__)` → Marp processes → `<img style="height:300px;" />`
+- **Processing Pipeline**:
+  ```
+  Step 1: Original Markdown
+    ![height:300px](./images/yield-curve.png)
+
+  Step 2: Path Replacement (Keep Markdown!)
+    ![height:300px](__MARP_IMAGE_0__)
+
+  Step 3: Marp CLI Processing (Directive → Style)
+    <img src="__MARP_IMAGE_0__" style="height:300px;" />
+
+  Step 4: Final URL Replacement
+    <img src="/_astro/yield-curve.abc123.png" style="height:300px;" />
+  ```
+- **Supported Marp Directives**:
+  - Size: `height:`, `width:`, `w:`, `h:` → Inline styles
+  - Background: `bg`, `bg fit`, `bg contain`, `bg cover` → Slide backgrounds
+  - Position: `bg left`, `bg right`, `bg center` → Background positioning
+  - Filters: `blur:`, `brightness:`, `contrast:`, `grayscale:` → CSS filters
+- **File Modified**: `src/lib/vite-plugin-marp.ts` (lines 175-200: `replaceImagesWithPlaceholders`)
+- **Result**: All Marp image directives work correctly with Astro-optimized images ✅
+- **Impact**: Users can now use full Marp image syntax while benefiting from Astro's image optimization
+
+#### 3. GitHub Actions CI/CD Pipeline ✅
 - **Files Created**:
   - `.github/workflows/publish.yml` - Automated npm publishing on version tags
   - `.github/workflows/ci.yml` - Build verification on push/PR
@@ -42,7 +76,7 @@
   - No manual npm publish needed
 - **Setup**: One-time `NPM_TOKEN` GitHub secret configuration
 
-#### 3. Testing Infrastructure ✅
+#### 4. Testing Infrastructure ✅
 - **Test Coverage**: 45 unit tests created
   - 17 tests for marp-parser.ts (frontmatter parsing, image extraction, title extraction, hashing, slide counting)
   - 28 tests for theme-resolver.ts (theme discovery, resolution, validation, caching, edge cases)
@@ -50,12 +84,12 @@
 - **Fixtures**: Test presentation files and images in `tests/fixtures/`
 - **Scripts**: `npm test`, `npm run test:watch`, `npm run test:coverage`
 
-#### 4. Code Cleanup ✅
+#### 5. Code Cleanup ✅
 - **Removed**: `src/components/` directory (unused legacy code from earlier architecture)
 - **Reason**: Virtual module system doesn't need separate component files
 - **Impact**: Cleaner codebase, no functional changes
 
-#### 5. Rejected Changes ❌
+#### 6. Rejected Changes ❌
 - **What**: Error handling improvements (custom error types, timeout handling, CLI path improvements)
 - **Why**: Deemed unnecessary complexity for current use case
 - **Decision**: Existing error handling is sufficient, no changes made
