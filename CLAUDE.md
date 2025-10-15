@@ -34,17 +34,22 @@ export const raw: string;               // Post-processed Markdown
    - **Critical**: Keep Markdown syntax intact to preserve Marp directives
    - Example: `![height:300px](./file.png)` → `![height:300px](__MARP_IMAGE_0__)`
    - This preserves directives like `height:`, `width:`, `bg`, etc.
-3. **Mermaid Processing**: Convert fenced code blocks to HTML divs
-   - Example: ` ```mermaid\ngraph TD\n  A --> B\n``` ` → `<div class="mermaid">\ngraph TD\n  A --> B\n</div>`
+3. **Mermaid Preprocessing**: Convert fenced code blocks to HTML code blocks
+   - Example: ` ```mermaid\ngraph TD\n  A --> B\n``` ` → `<pre><code class="language-mermaid">graph TD\n  A --> B</code></pre>`
+   - This format is required by rehype-mermaid for server-side rendering
    - Enabled by default unless `enableMermaid: false`
    - Happens AFTER image processing, BEFORE Marp CLI
 4. **Marp CLI Execution**: Pipe processed Markdown to `marp --stdin --theme <path> -o -`
    - Marp CLI processes directives: `![height:300px](__PLACEHOLDER__)` → `<img src="__PLACEHOLDER__" style="height:300px;" />`
-   - Preserves HTML: `<div class="mermaid">` tags pass through unchanged
-5. **Image Optimization**: Process images via Astro's `getImage()` and replace placeholders in HTML
+   - Preserves HTML: `<pre><code class="language-mermaid">` tags pass through with `--html` flag
+5. **Mermaid Server-Side Rendering** (if `enableMermaid !== false`):
+   - Apply rehype-mermaid plugin to convert `<code class="language-mermaid">` to SVG/PNG at build time
+   - Uses unified/rehype pipeline for HTML AST processing
+   - Output format controlled by `mermaidStrategy` option
+6. **Image Optimization**: Process images via Astro's `getImage()` and replace placeholders in HTML
    - Final: `<img src="__MARP_IMAGE_0__" style="height:300px;" />` → `<img src="/_astro/file.hash.png" style="height:300px;" />`
-6. **Module Generation**: Create virtual module with rendered HTML + metadata + Mermaid.js injection
-7. **Content Collection**: Register entry for querying via `getCollection()`
+7. **Module Generation**: Create virtual module with rendered HTML + metadata
+8. **Content Collection**: Register entry for querying via `getCollection()`
 
 ### Key Components
 - **Vite Plugin** (`src/lib/vite-plugin-marp.ts`): Handles file transformation and virtual module creation
@@ -94,7 +99,7 @@ export function createViteMarpPlugin(
 
 ## Configuration
 
-The integration supports minimal configuration:
+The integration supports the following configuration options:
 ```javascript
 // astro.config.mjs
 import { defineConfig } from 'astro/config';
@@ -103,10 +108,44 @@ import { marp } from 'astro-marp';
 export default defineConfig({
   integrations: [
     marp({
-      defaultTheme: 'am_blue'  // Built-in theme name
+      defaultTheme: 'am_blue',           // Built-in theme name
+      enableMermaid: true,               // Enable Mermaid diagram support (default: true)
+      mermaidStrategy: 'inline-svg',     // Server-side rendering strategy (default: 'inline-svg')
+      debug: false,                      // Enable debug logging (default: false)
+      maxSlides: undefined,              // Maximum number of slides to process (optional)
     })
   ]
 });
+```
+
+### Mermaid Rendering Strategies (Server-Side Only)
+
+All Mermaid diagrams are rendered at build time using rehype-mermaid. The `mermaidStrategy` option controls the output format:
+
+- **`'inline-svg'` (default)**: Build-time rendering as inline SVG
+  - ✅ Diagrams pre-rendered at build time
+  - ✅ No client-side JavaScript required
+  - ✅ Best for static hosting
+  - ✅ Fastest page load (no separate requests)
+
+- **`'img-svg'`**: Build-time rendering as SVG images
+  - ✅ Diagrams pre-rendered as separate SVG files
+  - ✅ Can be cached by browser
+  - ✅ Good for presentations with many diagrams
+
+- **`'img-png'`**: Build-time rendering as PNG images
+  - ✅ Diagrams pre-rendered as PNG files
+  - ✅ Maximum compatibility
+  - ⚠️ Larger file sizes than SVG
+
+- **`'pre-mermaid'`**: Output as `<pre class="mermaid">` for custom rendering
+  - For advanced use cases with custom Mermaid initialization
+
+**Installation Requirements**:
+Playwright is required for server-side Mermaid rendering:
+```bash
+npm install playwright
+npx playwright install chromium
 ```
 
 ## Development Workflow
@@ -146,12 +185,14 @@ export default defineConfig({
 - **Content Collections**: Query presentations via `getCollection('presentations')`
 - **Asset Optimization**: Local images processed through Astro's optimization
 - **Dynamic Theme System**: Automatic discovery of available themes from filesystem, no hardcoded lists
-- **Mermaid Diagram Support**: Standard ```mermaid fenced code block syntax
+- **Mermaid Diagram Support**: Standard ```mermaid fenced code block syntax with server-side rendering
   - **Syntax**: Use standard Markdown fenced code blocks with `mermaid` language
   - **Processing**: Converts ` ```mermaid` to `<div class="mermaid">` before Marp CLI
-  - **Rendering**: Client-side rendering via automatically injected Mermaid.js script
-  - **Configuration**: Enabled by default, disable with `enableMermaid: false`
-  - **Matching Astro Experience**: Same syntax as Astro's markdown files
+  - **Rendering**: Server-side pre-rendering via rehype-mermaid at build time
+  - **Output Formats**: Choose between inline SVG, SVG images, or PNG images
+  - **Configuration**: Enabled by default, configurable with `mermaidStrategy` option
+  - **Matching Astro Experience**: Uses rehype-mermaid, same as Astro's markdown
+  - **Requirements**: Playwright installation required
 
 ## Mermaid Diagrams
 
@@ -174,16 +215,34 @@ graph TD
 ```
 User writes: ```mermaid ... ```
 ↓
-astro-marp preprocesses: <div class="mermaid">...</div>
+astro-marp preprocesses: <pre><code class="language-mermaid">...</code></pre>
 ↓
 Marp CLI processes (passes HTML through with --html flag)
 ↓
-Client-side Mermaid.js renders diagram in browser
+rehype-mermaid renders at build time
+↓
+┌─────────────────────────────────────────────────┐
+│  Output format based on mermaidStrategy:       │
+├─────────────────────────────────────────────────┤
+│  'inline-svg' (default):                       │
+│    → Diagram embedded as inline SVG            │
+│    → No separate file, fastest load            │
+│                                                 │
+│  'img-svg':                                    │
+│    → Diagram saved as separate SVG file        │
+│    → Cacheable by browser                      │
+│                                                 │
+│  'img-png':                                    │
+│    → Diagram saved as separate PNG file        │
+│    → Maximum compatibility                     │
+└─────────────────────────────────────────────────┘
+↓
+Static HTML with pre-rendered diagrams
 ```
 
 ### Configuration
 
-Mermaid support is **enabled by default**. To disable:
+Mermaid support is **enabled by default** with server-side rendering. You can configure the output format:
 
 ```javascript
 // astro.config.mjs
@@ -191,11 +250,20 @@ export default defineConfig({
   integrations: [
     marp({
       defaultTheme: 'am_blue',
-      enableMermaid: false  // Disable Mermaid processing
+      enableMermaid: true,           // Enable/disable Mermaid (default: true)
+      mermaidStrategy: 'inline-svg', // Output format (default: 'inline-svg')
     })
   ]
 });
 ```
+
+**Available strategies**:
+- `'inline-svg'`: Default, inline SVG embedding
+- `'img-svg'`: Separate SVG image files
+- `'img-png'`: Separate PNG image files
+- `'pre-mermaid'`: Custom rendering (advanced)
+
+See the [Mermaid Rendering Strategies](#mermaid-rendering-strategies-server-side-only) section for detailed comparison.
 
 ### Supported Diagram Types
 

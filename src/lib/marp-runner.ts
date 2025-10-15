@@ -111,11 +111,8 @@ export async function runMarpCli(markdown: string, options: MarpRunnerOptions = 
       // Count slides in the output HTML
       const slidesCount = countSlidesInHtml(stdout);
 
-      // Inject Mermaid support
-      const htmlWithMermaid = injectMermaidSupport(stdout);
-
       resolve({
-        html: htmlWithMermaid,
+        html: stdout,
         slidesCount,
       });
     });
@@ -142,23 +139,6 @@ function countSlidesInHtml(html: string): number {
   // Count section elements which represent slides in Marp output
   const matches = html.match(/<section[^>]*>/g);
   return matches ? matches.length : 1;
-}
-
-function injectMermaidSupport(html: string): string {
-  // Inject Mermaid initialization script into the head
-  const mermaidScript = `
-    <script type="module">
-      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-      mermaid.initialize({ startOnLoad: true });
-    </script>
-  `;
-
-  // Insert before closing head tag, or at the beginning if no head
-  if (html.includes('</head>')) {
-    return html.replace('</head>', `${mermaidScript}</head>`);
-  } else {
-    return `${mermaidScript}${html}`;
-  }
 }
 
 export function generateSourceHash(content: string, theme: string, config: any = {}): string {

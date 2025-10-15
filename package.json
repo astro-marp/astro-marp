@@ -39,7 +39,12 @@
   "dependencies": {
     "@marp-team/marp-cli": "^4.2.3",
     "astro": "^5.14.1",
-    "sharp": "^0.33.5"
+    "playwright": "^1.49.1",
+    "rehype-mermaid": "^2.1.0",
+    "rehype-parse": "^9.0.1",
+    "rehype-stringify": "^10.0.1",
+    "sharp": "^0.33.5",
+    "unified": "^11.0.5"
   },
   "devDependencies": {
     "@types/node": "^24.7.0",

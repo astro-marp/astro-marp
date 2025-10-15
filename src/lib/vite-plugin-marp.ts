@@ -8,6 +8,13 @@ import { readFileSync, existsSync } from 'node:fs';
 import { extname, resolve, dirname, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 
+// Import rehype dependencies for build-time Mermaid rendering
+// These are optional - only needed if using build-time strategies
+import { unified } from 'unified';
+import rehypeParse from 'rehype-parse';
+import rehypeStringify from 'rehype-stringify';
+import rehypeMermaid from 'rehype-mermaid';
+
 // Image info interface for ESM imports
 interface ImageInfo {
   index: number;
@@ -200,12 +207,12 @@ function replaceImagesWithPlaceholders(
 }
 
 /**
- * Converts ```mermaid fenced code blocks to <div class="mermaid"> HTML
- * This allows Marp CLI to pass them through unchanged with --html flag
- * The Mermaid.js script injected by marp-runner.ts will render these client-side
+ * Converts ```mermaid fenced code blocks to <pre><code class="language-mermaid"> HTML
+ * This format is required by rehype-mermaid for server-side rendering
+ * Marp CLI will pass these through unchanged with --html flag
  *
  * @param markdown - Markdown content with potential ```mermaid blocks
- * @returns Markdown with mermaid blocks converted to HTML divs
+ * @returns Markdown with mermaid blocks converted to HTML code blocks
  */
 function convertMermaidBlocksToHtml(markdown: string): string {
   // Match ```mermaid blocks (case-insensitive)
@@ -220,10 +227,54 @@ function convertMermaidBlocksToHtml(markdown: string): string {
       return match;
     }
 
-    // Convert to HTML div that Marp CLI will preserve with --html flag
-    // The div class="mermaid" is required for Mermaid.js to find and render
-    return `<div class="mermaid">\n${trimmedCode}\n</div>`;
+    // Convert to HTML code block format that rehype-mermaid expects
+    // rehype-mermaid looks for <code class="language-mermaid">
+    return `<pre><code class="language-mermaid">${trimmedCode}</code></pre>`;
   });
+}
+
+/**
+ * Process Mermaid diagrams in HTML using rehype-mermaid for build-time rendering
+ * This applies AFTER Marp CLI has generated HTML
+ *
+ * @param html - HTML content from Marp CLI
+ * @param strategy - rehype-mermaid rendering strategy
+ * @param debug - Enable debug logging
+ * @param logger - Optional logger for debug output
+ * @returns HTML with Mermaid diagrams rendered as SVG/PNG
+ */
+async function processMermaidWithRehype(
+  html: string,
+  strategy: 'inline-svg' | 'img-svg' | 'img-png' | 'pre-mermaid',
+  debug: boolean,
+  logger?: any
+): Promise<string> {
+  try {
+    if (debug) {
+      logger?.info(`[astro-marp] Processing Mermaid diagrams with rehype-mermaid (strategy: ${strategy})`);
+    }
+
+    const processor = unified()
+      .use(rehypeParse, { fragment: true })
+      .use(rehypeMermaid, { strategy })
+      .use(rehypeStringify);
+
+    const result = await processor.process(html);
+    const processedHtml = String(result);
+
+    if (debug) {
+      logger?.info(`[astro-marp] rehype-mermaid processing completed`);
+    }
+    return processedHtml;
+  } catch (error) {
+    logger?.error(`[astro-marp] Error processing Mermaid with rehype:`, error);
+    if (error instanceof Error) {
+      logger?.error(`[astro-marp] Error message: ${error.message}`);
+      logger?.error(`[astro-marp] Error stack: ${error.stack}`);
+    }
+    // Return original HTML on error
+    return html;
+  }
 }
 
 
@@ -298,7 +349,7 @@ export function createViteMarpPlugin(
         // Process images
         const { images, processedMarkdown, imageImports } = await processImages(code, id, logger);
 
-        // Process Mermaid diagrams (convert ```mermaid to <div class="mermaid">)
+        // Process Mermaid diagrams (convert ```mermaid to <pre><code class="language-mermaid">)
         // This step happens AFTER image processing and BEFORE Marp CLI execution
         // Default to true if not explicitly disabled
         const processedMarkdownWithMermaid = config.enableMermaid !== false
@@ -306,17 +357,52 @@ export function createViteMarpPlugin(
           : processedMarkdown;
 
         if (config.debug && processedMarkdownWithMermaid !== processedMarkdown) {
-          logger?.info(`[astro-marp] Converted Mermaid fenced code blocks to HTML divs`);
+          logger?.info(`[astro-marp] Converted Mermaid fenced code blocks to HTML code blocks`);
+          const mermaidMatch = processedMarkdownWithMermaid.match(/<pre><code class="language-mermaid">[\s\S]{0,150}/);
+          logger?.info(`[astro-marp] Mermaid markdown sample: ${mermaidMatch?.[0]}...`);
         }
 
         // Generate Marp HTML
         const marpResult = await generateMarpHtml(processedMarkdownWithMermaid, effectiveTheme, config, logger);
 
+        // Apply server-side Mermaid rendering using rehype-mermaid
+        // This happens AFTER Marp CLI execution
+        let processedHtml = marpResult.html;
+        const mermaidStrategy = config.mermaidStrategy || 'inline-svg';
+
+        if (config.enableMermaid !== false) {
+          if (config.debug) {
+            const hasMermaidCode = processedHtml.includes('language-mermaid');
+            logger?.info(`[astro-marp] Before rehype-mermaid: Has mermaid code blocks = ${hasMermaidCode}`);
+            if (hasMermaidCode) {
+              const mermaidMatch = processedHtml.match(/<code class="language-mermaid">[\s\S]{0,100}/);
+              logger?.info(`[astro-marp] Mermaid code sample: ${mermaidMatch?.[0]}...`);
+            }
+          }
+
+          // Server-side rendering using rehype-mermaid
+          processedHtml = await processMermaidWithRehype(
+            processedHtml,
+            mermaidStrategy,
+            config.debug || false,
+            logger
+          );
+
+          if (config.debug) {
+            const hasSvg = processedHtml.includes('<svg');
+            logger?.info(`[astro-marp] After rehype-mermaid: Has SVG = ${hasSvg}`);
+            if (hasSvg) {
+              const svgMatch = processedHtml.match(/<svg[\s\S]{0,150}/);
+              logger?.info(`[astro-marp] SVG sample: ${svgMatch?.[0]}...`);
+            }
+          }
+        }
+
         // Track assets for build summary
         trackProcessedAssets(id, images, isBuild);
 
-        // Use the Marp CLI output
-        const finalHtml = marpResult.html;
+        // Use the processed HTML (either from Marp CLI or after rehype processing)
+        const finalHtml = processedHtml;
 
         // Generate getImage() calls for optimization
         const imageOptimizations = images.length > 0
