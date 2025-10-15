@@ -4,9 +4,8 @@ import { parseMarpFile } from './marp-parser.js';
 import { resolveTheme } from './theme-resolver.js';
 import { runMarpCli, generateSourceHash } from './marp-runner.js';
 import { pathToFileURL } from 'node:url';
-import { readFileSync, existsSync } from 'node:fs';
-import { extname, resolve, dirname, basename } from 'node:path';
-import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 
 // Import rehype dependencies for build-time Mermaid rendering
 // These are optional - only needed if using build-time strategies
@@ -135,7 +134,7 @@ async function collectImagesFromMarkdown(
 
   let match;
   while ((match = imageRegex.exec(markdown)) !== null) {
-    const [fullMatch, alt, src] = match;
+    const [, alt, src] = match;
 
     if (!isLocalImage(src)) {
       // Skip remote images - they don't need optimization
@@ -344,7 +343,7 @@ export function createViteMarpPlugin(
 
       try {
         // Parse and prepare content
-        const { parsed, effectiveTheme, sourceHash } = await prepareContent(code, config, logger);
+        const { parsed, effectiveTheme } = await prepareContent(code, config, logger);
 
         // Process images
         const { images, processedMarkdown, imageImports } = await processImages(code, id, logger);

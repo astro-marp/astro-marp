@@ -127,9 +127,9 @@ export function marp(userConfig: MarpConfig = {}): AstroIntegration {
         // Add content entry type for content collections
         addContentEntryType({
           extensions: ['.marp'],
-          async getEntryInfo({ fileUrl, contents }) {
+          async getEntryInfo({ contents }) {
             const { parseMarpFile } = await import('./lib/marp-parser.js');
-            const { frontmatter, content } = await parseMarpFile(contents);
+            const { frontmatter } = await parseMarpFile(contents);
 
             return {
               data: frontmatter,
@@ -164,9 +164,9 @@ declare module 'astro:content' {
         }
       },
 
-      'astro:config:done': ({ config: astroConfig, logger, injectTypes }) => {
-        const resolvedTheme = resolveTheme(config.defaultTheme, logger);
-        //logger.info(`Marp integration ready with default theme: ${resolvedTheme}`);
+      'astro:config:done': ({ logger, injectTypes }) => {
+        // Verify theme is valid
+        resolveTheme(config.defaultTheme, logger);
 
         // Inject TypeScript definitions
         injectTypes({
@@ -178,7 +178,7 @@ declare module 'astro:content' {
         });
       },
 
-      'astro:build:start': async ({ logger }) => {
+      'astro:build:start': async ({ logger: _logger }) => {
         // Clear asset tracking from previous builds
         const { clearProcessedAssets } = await import('./lib/vite-plugin-marp.js');
         clearProcessedAssets();

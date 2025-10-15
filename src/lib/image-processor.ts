@@ -51,7 +51,7 @@ export async function processImagesForVite(
   const matches = Array.from(markdown.matchAll(IMAGE_REGEX));
 
   for (const match of matches) {
-    const [fullMatch, alt, src, title] = match;
+    const [, alt, src, title] = match;
 
     if (isRemoteUrl(src)) {
       // Remote image - no processing
@@ -102,7 +102,7 @@ export async function processImagesForVite(
       isRemote: false
     });
 
-    console.log(`[astro-marp] Processing local image: ${src} -> import ${importName}`);
+    // Image will be imported and processed by Astro's asset pipeline
   }
 
   return {

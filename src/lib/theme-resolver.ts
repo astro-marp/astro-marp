@@ -1,7 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
-import { AstroIntegrationLogger } from 'astro';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,7 +9,7 @@ const __dirname = dirname(__filename);
 let cachedThemes: string[] | null = null;
 
 // Try multiple possible theme directories
-function getThemesDir(logger: any): string {
+function getThemesDir(_logger: any): string {
   const possibleDirs = [
     resolve(__dirname, '../themes'),           // When running from dist/
     resolve(__dirname, '../../src/themes'),    // When running from dist/lib/

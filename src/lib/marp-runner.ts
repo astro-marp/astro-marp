@@ -60,9 +60,9 @@ export interface MarpCliError extends Error {
  * @returns Promise resolving to HTML output and metadata
  */
 export async function runMarpCli(markdown: string, options: MarpRunnerOptions = {}): Promise<MarpRunnerResult> {
-  const { theme = 'default', html = true } = options;
+  const { theme = 'default' } = options;
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     const args = [
       '--stdin',           // Read from stdin
       '--html',           // Enable HTML output
