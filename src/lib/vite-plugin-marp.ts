@@ -199,6 +199,33 @@ function replaceImagesWithPlaceholders(
   return processed;
 }
 
+/**
+ * Converts ```mermaid fenced code blocks to <div class="mermaid"> HTML
+ * This allows Marp CLI to pass them through unchanged with --html flag
+ * The Mermaid.js script injected by marp-runner.ts will render these client-side
+ *
+ * @param markdown - Markdown content with potential ```mermaid blocks
+ * @returns Markdown with mermaid blocks converted to HTML divs
+ */
+function convertMermaidBlocksToHtml(markdown: string): string {
+  // Match ```mermaid blocks (case-insensitive)
+  // Captures diagram code between opening ```mermaid and closing ```
+  const mermaidRegex = /```mermaid\s*\n([\s\S]*?)```/gi;
+
+  return markdown.replace(mermaidRegex, (match, diagramCode) => {
+    const trimmedCode = diagramCode.trim();
+
+    // Skip empty blocks
+    if (!trimmedCode) {
+      return match;
+    }
+
+    // Convert to HTML div that Marp CLI will preserve with --html flag
+    // The div class="mermaid" is required for Mermaid.js to find and render
+    return `<div class="mermaid">\n${trimmedCode}\n</div>`;
+  });
+}
+
 
 /**
  * Creates a Vite plugin for transforming .marp files into Astro components.
@@ -271,8 +298,19 @@ export function createViteMarpPlugin(
         // Process images
         const { images, processedMarkdown, imageImports } = await processImages(code, id, logger);
 
+        // Process Mermaid diagrams (convert ```mermaid to <div class="mermaid">)
+        // This step happens AFTER image processing and BEFORE Marp CLI execution
+        // Default to true if not explicitly disabled
+        const processedMarkdownWithMermaid = config.enableMermaid !== false
+          ? convertMermaidBlocksToHtml(processedMarkdown)
+          : processedMarkdown;
+
+        if (config.debug && processedMarkdownWithMermaid !== processedMarkdown) {
+          logger?.info(`[astro-marp] Converted Mermaid fenced code blocks to HTML divs`);
+        }
+
         // Generate Marp HTML
-        const marpResult = await generateMarpHtml(processedMarkdown, effectiveTheme, config, logger);
+        const marpResult = await generateMarpHtml(processedMarkdownWithMermaid, effectiveTheme, config, logger);
 
         // Track assets for build summary
         trackProcessedAssets(id, images, isBuild);

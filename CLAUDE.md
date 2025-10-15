@@ -34,12 +34,17 @@ export const raw: string;               // Post-processed Markdown
    - **Critical**: Keep Markdown syntax intact to preserve Marp directives
    - Example: `![height:300px](./file.png)` → `![height:300px](__MARP_IMAGE_0__)`
    - This preserves directives like `height:`, `width:`, `bg`, etc.
-3. **Marp CLI Execution**: Pipe processed Markdown to `marp --stdin --theme <path> -o -`
+3. **Mermaid Processing**: Convert fenced code blocks to HTML divs
+   - Example: ` ```mermaid\ngraph TD\n  A --> B\n``` ` → `<div class="mermaid">\ngraph TD\n  A --> B\n</div>`
+   - Enabled by default unless `enableMermaid: false`
+   - Happens AFTER image processing, BEFORE Marp CLI
+4. **Marp CLI Execution**: Pipe processed Markdown to `marp --stdin --theme <path> -o -`
    - Marp CLI processes directives: `![height:300px](__PLACEHOLDER__)` → `<img src="__PLACEHOLDER__" style="height:300px;" />`
-4. **Image Optimization**: Process images via Astro's `getImage()` and replace placeholders in HTML
+   - Preserves HTML: `<div class="mermaid">` tags pass through unchanged
+5. **Image Optimization**: Process images via Astro's `getImage()` and replace placeholders in HTML
    - Final: `<img src="__MARP_IMAGE_0__" style="height:300px;" />` → `<img src="/_astro/file.hash.png" style="height:300px;" />`
-5. **Module Generation**: Create virtual module with rendered HTML + metadata
-6. **Content Collection**: Register entry for querying via `getCollection()`
+6. **Module Generation**: Create virtual module with rendered HTML + metadata + Mermaid.js injection
+7. **Content Collection**: Register entry for querying via `getCollection()`
 
 ### Key Components
 - **Vite Plugin** (`src/lib/vite-plugin-marp.ts`): Handles file transformation and virtual module creation
@@ -141,7 +146,122 @@ export default defineConfig({
 - **Content Collections**: Query presentations via `getCollection('presentations')`
 - **Asset Optimization**: Local images processed through Astro's optimization
 - **Dynamic Theme System**: Automatic discovery of available themes from filesystem, no hardcoded lists
-- **Mermaid Support**: Automatic injection of Mermaid initialization script
+- **Mermaid Diagram Support**: Standard ```mermaid fenced code block syntax
+  - **Syntax**: Use standard Markdown fenced code blocks with `mermaid` language
+  - **Processing**: Converts ` ```mermaid` to `<div class="mermaid">` before Marp CLI
+  - **Rendering**: Client-side rendering via automatically injected Mermaid.js script
+  - **Configuration**: Enabled by default, disable with `enableMermaid: false`
+  - **Matching Astro Experience**: Same syntax as Astro's markdown files
+
+## Mermaid Diagrams
+
+### Usage
+
+Write Mermaid diagrams using standard fenced code block syntax:
+
+````markdown
+```mermaid
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Success]
+  B -->|No| D[Retry]
+  D --> A
+```
+````
+
+### Processing Pipeline
+
+```
+User writes: ```mermaid ... ```
+↓
+astro-marp preprocesses: <div class="mermaid">...</div>
+↓
+Marp CLI processes (passes HTML through with --html flag)
+↓
+Client-side Mermaid.js renders diagram in browser
+```
+
+### Configuration
+
+Mermaid support is **enabled by default**. To disable:
+
+```javascript
+// astro.config.mjs
+export default defineConfig({
+  integrations: [
+    marp({
+      defaultTheme: 'am_blue',
+      enableMermaid: false  // Disable Mermaid processing
+    })
+  ]
+});
+```
+
+### Supported Diagram Types
+
+All Mermaid diagram types are supported:
+- **Flowcharts**: `graph TD`, `graph LR`
+- **Sequence Diagrams**: `sequenceDiagram`
+- **Class Diagrams**: `classDiagram`
+- **State Diagrams**: `stateDiagram`
+- **ER Diagrams**: `erDiagram`
+- **Gantt Charts**: `gantt`
+- **Pie Charts**: `pie`
+- **Git Graphs**: `gitGraph`
+- **User Journey**: `journey`
+- **Block Diagrams**: `block-beta` (Mermaid 11+)
+
+### Customizing Mermaid Appearance
+
+Use Mermaid's initialization directives within your diagram code:
+
+````markdown
+```mermaid
+%%{init: {'theme':'dark', 'themeVariables': {'primaryColor':'#ff6b6b'}}}%%
+graph TD
+  A --> B
+```
+````
+
+### Debug Mode
+
+Enable debug logging to see Mermaid conversion in action:
+
+```javascript
+// astro.config.mjs
+marp({ defaultTheme: 'am_blue', debug: true })
+```
+
+Console output will show:
+```
+[astro-marp] Converted Mermaid fenced code blocks to HTML divs
+```
+
+### Technical Implementation
+
+**Location:** `src/lib/vite-plugin-marp.ts` (lines 202-227, 301-310)
+
+**Processing Flow:**
+1. **Parse frontmatter** and extract .marp content
+2. **Process images** for optimization (replace paths with placeholders)
+3. **Convert Mermaid blocks** from ` ```mermaid` to `<div class="mermaid">`
+4. **Marp CLI execution** (processes markdown, preserves HTML)
+5. **Mermaid.js injection** (in marp-runner.ts) for client-side rendering
+
+**Why This Works:**
+- Marp CLI's `--html` flag preserves `<div class="mermaid">` tags
+- Mermaid.js script automatically renders all elements with class="mermaid"
+- Standard syntax matches Astro's markdown experience
+
+### Future Enhancement: Build-Time Rendering
+
+**Current**: Client-side rendering (requires JavaScript in browser)
+**Future**: Optional build-time SVG generation using rehype-mermaid plugin
+
+This would:
+- Render diagrams at build time (no client-side JS needed)
+- Improve SEO and performance
+- Require Playwright dependency (~300MB)
 
 ## Testing Strategy
 
