@@ -1,24 +1,27 @@
 /* @theme am_purple */
-
 @charset "UTF-8";
 @import "default";
 @import "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css";
-@import url(https://fonts.bunny.net/css?family=eb-garamond:400,500,600,700,800);  /* Replacement for Adobe Garamond */
-@import url(https://fonts.bunny.net/css?family=open-sans:300,400,500,600,700,800);    /* Replacement for Calibri */
-@import url(https://fonts.bunny.net/css?family=fira-code:300,400,500,600,700);    /* Monospace font for code */
-@import url(https://fonts.bunny.net/css?family=montserrat:100,200,300,400,500,600,700,800,900);   /* Replacement for Optima LT Medium */
-@import url(https://fonts.bunny.net/css?family=charm:700);        /* Charm font from fonts.bunny.net */
-@import url(https://fonts.googleapis.com/css2?family=STIX+Two+Math); /* Replacement for Latin Modern Math */
-@import url(https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700); /* Replacement for Microsoft YaHei and SimHei */
-@import url(https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700); /* Replacement for SimSun */
-@import url(https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei:wght@400); /* Replacement for KaiTi (calligraphic style) */
+@import url(https://fonts.cdnfonts.com/css/latin-modern-math);
+@import url(https://fonts.cdnfonts.com/css/adobe-garamond-pro-2);
+@import url(https://chinese-fonts-cdn.deno.dev/packages/syst/dist/SourceHanSerifCN/result.css)
+@import url(https://fonts.cdnfonts.com/css/optima);
+@import url(https://fonts.cdnfonts.com/css/arial);
+@import url(https://fonts.bunny.net/css?family=charm:700);
+@import url(https://fonts.cdnfonts.com/css/calibri-light);
+@import url(https://fonts.bunny.net/css?family=fira-code:300,400,500,600,700);
+@import url(https://fonts.cdnfonts.com/css/consola-mono);
+@import url(https://fonts.cdnfonts.com/css/source-code-pro);
+@import url(https://fonts.cdnfonts.com/css/menlo);
+@import url(https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700);
+@import url(https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700);
 @auto-scaling true;
 
 :root {
-    --font-family-main: "STIX Two Math", "EB Garamond", "Open Sans", "Noto Sans SC", "Noto Serif SC", "ZCOOL XiaoWei", serif;
-    --font-family-title: "Montserrat", "Open Sans", "Noto Sans SC", sans-serif;
-    --font-family-footer: "Charm", "Open Sans", "Noto Sans SC", "ZCOOL XiaoWei", cursive;
-    --font-family-code: "Fira Code", monospace;
+    --font-family-main: "Latin Modern Math", "Adobe Garamond Pro", "SourceHanSerifCN", "Noto Sans SC", "Noto Serif SC", serif;
+    --font-family-title: "Optima", "Arial", "Noto Sans SC", sans-serif;
+    --font-family-footer: "Charm", "Calibri Light", "Noto Sans SC",  cursive;
+    --font-family-code: "Fira Code","Consola Mono","Source Code Pro","Menlo", monospace;
     --font-size-1: 55px;
     --foot-size-subtitle: 42px;
     --font-size-2-3: 38px;
