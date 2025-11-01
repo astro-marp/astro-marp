@@ -27,7 +27,18 @@
       "WebFetch(domain:maeda.pm)",
       "WebFetch(domain:www.npmjs.com)",
       "WebFetch(domain:dteather.com)",
-      "WebFetch(domain:marcandreuf.com)"
+      "WebFetch(domain:marcandreuf.com)",
+      "Bash(pnpm --version)",
+      "Bash(corepack --version)",
+      "Bash(corepack enable)",
+      "Bash(corepack use:*)",
+      "Bash(pnpm update)",
+      "Bash(pnpm list:*)",
+      "Bash(pnpm why:*)",
+      "Bash(pnpm update:*)",
+      "Bash(pnpm outdated:*)",
+      "Bash(pnpm run build)",
+      "Bash(pnpm run lint)"
     ],
     "deny": [],
     "ask": []

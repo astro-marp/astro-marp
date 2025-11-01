@@ -30,8 +30,8 @@
     "dev": "tsc --watch",
     "lint": "eslint src",
     "test": "echo \"Test via test-astro-project\"",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run build"
+    "prepare": "pnpm build",
+    "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
     "astro": "^5.14.0"
@@ -58,6 +58,7 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "packageManager": "pnpm@10.20.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/astro-marp/astro-marp.git"
