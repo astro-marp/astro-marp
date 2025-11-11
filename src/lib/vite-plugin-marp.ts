@@ -2,7 +2,7 @@ import type { Plugin } from 'vite';
 import type { MarpConfig } from '../types.js';
 import { parseMarpFile } from './marp-parser.js';
 import { resolveTheme } from './theme-resolver.js';
-import { runMarpCli, generateSourceHash } from './marp-runner.js';
+import { renderWithMarpCore, generateSourceHash } from './marp-engine.js';
 import { pathToFileURL } from 'node:url';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -83,20 +83,33 @@ async function processImages(code: string, id: string, logger?: any) {
 }
 
 /**
- * Generates HTML using Marp CLI
+ * Generates HTML using marp-core
  */
 async function generateMarpHtml(processedMarkdown: string, effectiveTheme: string, config: MarpConfig, logger?: any) {
-  // Run Marp CLI to process the markdown
+  // Run marp-core to process the markdown
   if (config.debug) {
     logger.info(`Processing markdown with theme: ${effectiveTheme}`);
   }
-  const marpResult = await runMarpCli(processedMarkdown, {
+
+  const marpResult = await renderWithMarpCore(processedMarkdown, {
     theme: effectiveTheme,
     html: true,
+    themeCache: true,
+    debug: config.debug ?? false,
   });
 
   if (marpResult.error) {
     logger?.warn(`[astro-marp] Warning processing markdown:`, marpResult.error);
+  }
+
+  // Log performance metrics if available
+  if (config.debug && marpResult.metadata) {
+    const { themeCompilationTime, themeCached, renderTime } = marpResult.metadata;
+    logger.info(
+      `[astro-marp] Performance: ` +
+      `theme=${themeCached ? 'cached' : themeCompilationTime + 'ms'}, ` +
+      `render=${renderTime}ms`
+    );
   }
 
   return marpResult;
@@ -283,7 +296,7 @@ async function processMermaidWithRehype(
  * This plugin handles the complete transformation pipeline:
  * 1. Parses frontmatter from .marp files
  * 2. Extracts and processes local images for optimization
- * 3. Runs Marp CLI to generate HTML
+ * 3. Runs marp-core to generate HTML
  * 4. Creates virtual ESM modules with Astro components
  *
  * @param config - Marp integration configuration
@@ -429,6 +442,11 @@ export const name = "MarpComponent";
 export const frontmatter = ${JSON.stringify(parsed.frontmatter)};
 export const file = ${JSON.stringify(id)};
 export const url = ${JSON.stringify(pathToFileURL(id).href)};
+
+// Export compiled CSS from marp-core
+// Note: CSS is already embedded in HTML via <style> tags
+// This export is for future extensibility (e.g., CSS extraction)
+export const css = ${JSON.stringify(marpResult.css)};
 
 export function rawContent() {
     return readFileSync(file, 'utf-8');
