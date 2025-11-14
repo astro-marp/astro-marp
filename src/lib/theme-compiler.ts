@@ -1,4 +1,4 @@
-import sass from 'sass';
+import * as sass from 'sass';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
