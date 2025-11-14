@@ -1,4 +1,5 @@
 import * as sass from 'sass';
+import { NodePackageImporter } from 'sass';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
@@ -116,29 +117,26 @@ export async function compileTheme(
   const startTime = Date.now();
 
   try {
-    // Add the theme file's directory to loadPaths so @use "marp_default" works
-    // This is critical when the package is installed in node_modules
+    // Use NodePackageImporter for robust npm package resolution
+    // This handles both pkg: protocol and standard node_modules resolution
+    // Works correctly with pnpm's content-addressable storage structure
     const themeDir = dirname(themePath);
 
     const result = sass.compile(themePath, {
       style: outputStyle,
       sourceMap: sourceMap,
       loadPaths: [
-        themeDir,        // Theme file's directory (for @use "marp_default")
+        themeDir,        // Theme file's directory (for local @use "marp_default")
       ],
       importers: [
+        // NodePackageImporter: Modern Sass package resolution (handles pkg: URLs)
+        // Uses theme directory as entry point for node_modules resolution
+        new NodePackageImporter(themeDir),
         {
-          // Custom importer for local theme files and pkg: protocol
+          // Custom importer for local theme files
+          // Handles bare imports like "marp_default" in the same directory
           findFileUrl(url: string): URL | null {
-            // Handle pkg: protocol for npm packages (used by marp_default.scss)
-            if (url.startsWith('pkg:')) {
-              // Convert pkg:package/file.css to node_modules/package/file.css
-              const packagePath = url.substring(4); // Remove 'pkg:' prefix
-              return new URL(`file://${process.cwd()}/node_modules/${packagePath}`);
-            }
-
-            // Handle relative imports without extension (e.g., "marp_default")
-            // This is critical for pnpm node_modules structure
+            // Only handle local, relative imports without protocol
             if (!url.startsWith('~') && !url.startsWith('/') && !url.includes(':')) {
               // Try to resolve as .scss file in the same directory
               const scssPath = `${themeDir}/${url}.scss`;
