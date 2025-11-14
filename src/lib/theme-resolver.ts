@@ -9,7 +9,7 @@ const __dirname = dirname(__filename);
 let cachedThemes: string[] | null = null;
 
 // Try multiple possible theme directories
-function getThemesDir(_logger: any): string {
+function getThemesDir(logger: any): string {
   const possibleDirs = [
     resolve(__dirname, '../themes'),           // When running from dist/
     resolve(__dirname, '../../src/themes'),    // When running from dist/lib/
@@ -17,9 +17,14 @@ function getThemesDir(_logger: any): string {
     resolve(__dirname, '../../themes'),        // Themes in package root
   ];
 
+  console.log(`[astro-marp] DEBUG: __dirname = ${__dirname}`);
+  console.log(`[astro-marp] DEBUG: Checking possible theme directories:`);
+
   for (const dir of possibleDirs) {
-    if (existsSync(dir)) {
-      // logger.info(`[astro-marp] Found themes directory: ${dir}`);
+    const exists = existsSync(dir);
+    console.log(`[astro-marp] DEBUG: ${exists ? '✅' : '❌'} ${dir}`);
+    if (exists) {
+      console.log(`[astro-marp] DEBUG: Found themes directory: ${dir}`);
       return dir;
     }
   }

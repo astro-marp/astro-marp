@@ -117,10 +117,14 @@ export async function compileTheme(
   const startTime = Date.now();
 
   try {
+    console.log(`[theme-compiler] DEBUG: Compiling theme: ${themePath}`);
+    console.log(`[theme-compiler] DEBUG: File exists? ${require('fs').existsSync(themePath)}`);
+
     // Use NodePackageImporter for robust npm package resolution
     // This handles both pkg: protocol and standard node_modules resolution
     // Works correctly with pnpm's content-addressable storage structure
     const themeDir = dirname(themePath);
+    console.log(`[theme-compiler] DEBUG: themeDir: ${themeDir}`);
 
     // Find package root for NodePackageImporter entry point
     // NodePackageImporter needs to start from a directory with access to node_modules
