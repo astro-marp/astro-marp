@@ -1,6 +1,7 @@
 import * as sass from 'sass';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { dirname } from 'node:path';
 
 /**
  * Options for theme compilation
@@ -114,11 +115,16 @@ export async function compileTheme(
   const startTime = Date.now();
 
   try {
+    // Add the theme file's directory to loadPaths so @use "marp_default" works
+    // This is critical when the package is installed in node_modules
+    const themeDir = dirname(themePath);
+
     const result = sass.compile(themePath, {
       style: outputStyle,
       sourceMap: sourceMap,
       loadPaths: [
-        'node_modules', // Allow importing from node_modules
+        themeDir,        // Theme file's directory (for @use "marp_default")
+        'node_modules',  // Allow importing from node_modules
       ],
       importers: [
         {
