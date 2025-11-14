@@ -2,7 +2,7 @@ import * as sass from 'sass';
 import { NodePackageImporter } from 'sass';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /**
@@ -122,6 +122,24 @@ export async function compileTheme(
     // Works correctly with pnpm's content-addressable storage structure
     const themeDir = dirname(themePath);
 
+    // Find package root for NodePackageImporter entry point
+    // NodePackageImporter needs to start from a directory with access to node_modules
+    // In development: /project/src/themes -> use process.cwd()
+    // In production: /project/node_modules/.pnpm/astro-marp@.../node_modules/astro-marp/src/themes
+    //                -> need to find the astro-marp package root
+    let entryPointDir = process.cwd();
+
+    // Check if we're in node_modules (production)
+    if (themePath.includes('node_modules')) {
+      // Extract package root from path like:
+      // .../node_modules/.pnpm/astro-marp@.../node_modules/astro-marp/src/themes/am_blue.scss
+      // -> .../node_modules/.pnpm/astro-marp@.../node_modules/astro-marp
+      const match = themePath.match(/(.*node_modules[/\\]astro-marp)/);
+      if (match) {
+        entryPointDir = match[1];
+      }
+    }
+
     const result = sass.compile(themePath, {
       style: outputStyle,
       sourceMap: sourceMap,
@@ -130,8 +148,8 @@ export async function compileTheme(
       ],
       importers: [
         // NodePackageImporter: Modern Sass package resolution (handles pkg: URLs)
-        // Uses theme directory as entry point for node_modules resolution
-        new NodePackageImporter(themeDir),
+        // Uses package root as entry point for proper node_modules resolution
+        new NodePackageImporter(entryPointDir),
         {
           // Custom importer for local theme files
           // Handles bare imports like "marp_default" in the same directory
