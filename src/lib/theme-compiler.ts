@@ -2,6 +2,7 @@ import * as sass from 'sass';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Options for theme compilation
@@ -124,17 +125,33 @@ export async function compileTheme(
       sourceMap: sourceMap,
       loadPaths: [
         themeDir,        // Theme file's directory (for @use "marp_default")
-        'node_modules',  // Allow importing from node_modules
       ],
       importers: [
         {
-          // Handle pkg: protocol for npm packages (used by marp_default.scss)
+          // Custom importer for local theme files and pkg: protocol
           findFileUrl(url: string): URL | null {
+            // Handle pkg: protocol for npm packages (used by marp_default.scss)
             if (url.startsWith('pkg:')) {
               // Convert pkg:package/file.css to node_modules/package/file.css
               const packagePath = url.substring(4); // Remove 'pkg:' prefix
               return new URL(`file://${process.cwd()}/node_modules/${packagePath}`);
             }
+
+            // Handle relative imports without extension (e.g., "marp_default")
+            // This is critical for pnpm node_modules structure
+            if (!url.startsWith('~') && !url.startsWith('/') && !url.includes(':')) {
+              // Try to resolve as .scss file in the same directory
+              const scssPath = `${themeDir}/${url}.scss`;
+              try {
+                // Check if file exists by attempting to read
+                readFileSync(scssPath);
+                return pathToFileURL(scssPath);
+              } catch {
+                // File doesn't exist, let Sass handle it
+                return null;
+              }
+            }
+
             return null;
           },
         },
