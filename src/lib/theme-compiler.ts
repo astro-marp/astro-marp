@@ -1,6 +1,6 @@
 import * as sass from 'sass';
 import { NodePackageImporter } from 'sass';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -118,7 +118,7 @@ export async function compileTheme(
 
   try {
     console.log(`[theme-compiler] DEBUG: Compiling theme: ${themePath}`);
-    console.log(`[theme-compiler] DEBUG: File exists? ${require('fs').existsSync(themePath)}`);
+    console.log(`[theme-compiler] DEBUG: File exists? ${existsSync(themePath)}`);
 
     // Use NodePackageImporter for robust npm package resolution
     // This handles both pkg: protocol and standard node_modules resolution
