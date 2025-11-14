@@ -110,7 +110,9 @@ export function resolveTheme(themeName: string, logger: any): string {
   // Fallback to default
   else {
     console.warn(`[astro-marp] Theme "${formatThemeName(themeName)}" not found, falling back to "am blue"`);
-    result = 'am_blue';
+    const THEMES_DIR = getThemesDir(logger);
+    const themePath = resolve(THEMES_DIR, 'am_blue.scss');
+    result = themePath;
   }
 
   // Cache the result

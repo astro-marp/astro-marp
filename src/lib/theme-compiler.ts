@@ -2,7 +2,7 @@ import * as sass from 'sass';
 import { NodePackageImporter } from 'sass';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { dirname, resolve } from 'node:path';
+import { dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /**
