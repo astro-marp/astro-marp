@@ -55,10 +55,10 @@ function countSlidesInHtml(html: string): number {
  * Creates a new Marp instance with standard configuration including
  * HTML support, emoji rendering, and KaTeX math support.
  *
- * @param options - Marp engine options
+ * @param _options - Marp engine options (reserved for future use)
  * @returns Configured Marp instance
  */
-function buildMarpInstance(options: MarpEngineOptions): Marp {
+function buildMarpInstance(_options: MarpEngineOptions): Marp {
   const marp = new Marp({
     html: true,
     emoji: {
@@ -120,8 +120,6 @@ export async function renderWithMarpCore(
 
     // Compile and add theme if provided
     if (theme) {
-      const themeStartTime = Date.now();
-
       if (debug) {
         console.log(`[marp-engine] Compiling theme: ${theme}`);
       }

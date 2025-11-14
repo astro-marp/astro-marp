@@ -105,7 +105,7 @@ export async function compileTheme(
       }
 
       // Cache stale - will recompile below
-    } catch (error) {
+    } catch {
       // File might have been deleted, will fail below with proper error
     }
   }
@@ -117,6 +117,22 @@ export async function compileTheme(
     const result = sass.compile(themePath, {
       style: outputStyle,
       sourceMap: sourceMap,
+      loadPaths: [
+        'node_modules', // Allow importing from node_modules
+      ],
+      importers: [
+        {
+          // Handle pkg: protocol for npm packages (used by marp_default.scss)
+          findFileUrl(url: string): URL | null {
+            if (url.startsWith('pkg:')) {
+              // Convert pkg:package/file.css to node_modules/package/file.css
+              const packagePath = url.substring(4); // Remove 'pkg:' prefix
+              return new URL(`file://${process.cwd()}/node_modules/${packagePath}`);
+            }
+            return null;
+          },
+        },
+      ],
     });
 
     const compilationTime = Date.now() - startTime;

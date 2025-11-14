@@ -48,10 +48,12 @@ function getAvailableThemes(logger: any): string[] {
     const themes = files
       .filter(file => file.endsWith('.scss'))
       .map(file => file.replace('.scss', ''))
+      .filter(name => name !== 'marp_default') // Exclude base theme from user-selectable themes
       .sort(); // Sort for consistent ordering
 
     cachedThemes = themes;
-    logger?.info(`[astro-marp] Discovered ${themes.length} themes: ${themes.join(', ')}`);
+    const formattedThemes = themes.map(formatThemeName).join(', ');
+    logger?.info(`[astro-marp] Discovered ${themes.length} themes: ${formattedThemes}`);
     return themes;
   } catch (error) {
     console.error(`[astro-marp] Error reading themes directory: ${error}`);
@@ -61,6 +63,16 @@ function getAvailableThemes(logger: any): string[] {
 }
 
 
+
+/**
+ * Format theme name for display by replacing underscores with spaces.
+ *
+ * @param themeName - Theme name with underscores (e.g., "am_blue")
+ * @returns Formatted theme name (e.g., "am blue")
+ */
+export function formatThemeName(themeName: string): string {
+  return themeName.replace(/_/g, ' ');
+}
 
 // Cache to prevent duplicate logging
 const resolvedThemes = new Map<string, string>();
@@ -97,7 +109,7 @@ export function resolveTheme(themeName: string, logger: any): string {
   }
   // Fallback to default
   else {
-    console.warn(`[astro-marp] Theme "${themeName}" not found, falling back to "am_blue"`);
+    console.warn(`[astro-marp] Theme "${formatThemeName(themeName)}" not found, falling back to "am blue"`);
     result = 'am_blue';
   }
 

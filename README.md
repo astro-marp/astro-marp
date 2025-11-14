@@ -33,7 +33,7 @@ import { marp } from 'astro-marp';
 export default defineConfig({
   integrations: [
     marp({
-      defaultTheme: 'am_blue',           // Built-in theme (am_blue, am_brown, am_dark, am_green, am_purple, am_red)
+      defaultTheme: 'am_blue',           // Built-in theme (am blue, am brown, am dark, am green, am purple, am red)
       enableMermaid: true,               // Enable Mermaid diagram support (default: true)
       mermaidStrategy: 'inline-svg',     // Mermaid rendering strategy (default: 'inline-svg')
       debug: false,                      // Enable debug logging (default: false)
@@ -190,7 +190,7 @@ const { Content } = await presentation.render();
 ## ✨ Features
 
 ### ✅ Implemented
-- **🎨 Built-in Themes**: 6 themes from [Awesome-Marp](https://github.com/favourhong/Awesome-Marp) are ready to use (am_blue, am_brown, am_dark, am_green, am_purple, am_red)
+- **🎨 Built-in Themes**: 6 themes are ready to use (am blue, am brown, am dark, am green, am purple, am red)
 - **🖼️ Image Optimization**: Local images automatically optimized to WebP via Astro's pipeline with Sharp
   - Appears in Astro's "generating optimized images" console output
   - Automatic format conversion (WebP), quality optimization (80%)

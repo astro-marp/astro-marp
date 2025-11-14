@@ -94,12 +94,13 @@ astro-marp/
 │   │   ├── theme-resolver.ts        # Dynamic theme discovery
 │   │   └── image-processor.ts       # Image optimization logic
 │   └── themes/
-│       ├── am_blue.scss             # Built-in themes (6 total)
+│       ├── am_blue.scss             # User-selectable themes (6 total)
 │       ├── am_brown.scss
 │       ├── am_dark.scss
 │       ├── am_green.scss
 │       ├── am_purple.scss
-│       └── am_red.scss
+│       ├── am_red.scss
+│       └── marp_default.scss        # Base theme (imported by all am_xx themes)
 ├── dist/                             # Build output (TypeScript compiled)
 └── tests/
     ├── unit/                         # Unit tests (45 tests)
@@ -385,11 +386,16 @@ graph TD
 #### Dynamic Theme System
 Automatic discovery of available themes from filesystem, no hardcoded lists
 
-**Built-in Themes** (6 total from Awesome-Marp):
-- `am_blue`, `am_brown`, `am_dark`, `am_green`, `am_purple`, `am_red`
+**User-Selectable Themes** (6 total):
+- `am_blue`, `am_brown`, `am_dark`, `am_green`, `am_purple`, `am_red` (from Awesome-Marp)
+
+**Base Theme**:
+- `marp_default` (official Marp default theme, imported by all am_xx themes)
+- Not user-selectable, provides foundation styling
 
 **Location**: `src/themes/*.scss`
-**Discovery**: Automatic via `theme-resolver.ts`
+**Discovery**: Automatic via `theme-resolver.ts` (filters out `marp_default`)
+**Display**: Theme names are formatted in logs with spaces (e.g., "am blue", "am brown")
 
 ## Code Style & Conventions
 
@@ -537,7 +543,7 @@ return render`${maybeRenderHead(result)}${unescapeHTML(html)}`;
 
 Look for these in build output:
 ```
-✅ [astro-marp] Discovered 6 themes: am_blue, am_brown, am_dark, am_green, am_purple, am_red
+✅ [astro-marp] Discovered 6 themes: am blue, am brown, am dark, am green, am purple, am red
 ✅ [astro-marp] Processing local image: ./images/file.svg -> import image0
 ✅ dist/_astro/file.Cz_Ut2UY.svg (optimized asset created)
 ✅ <img src="/_astro/file.Cz_Ut2UY.svg" alt="..." /> (correct URL in HTML)
@@ -573,7 +579,7 @@ Expected console output:
 ### 1. Custom Themes Disabled
 **Status**: Known limitation
 **Issue**: Custom themes cause CSS import errors in Marp CLI
-**Workaround**: Use built-in themes (am_blue, am_brown, am_dark, am_green, am_purple, am_red)
+**Workaround**: Use built-in themes (am blue, am brown, am dark, am green, am purple, am red)
 **Fix Needed**: Enhanced theme path resolution and Marp CLI integration
 
 ### 2. Test Project Warning
