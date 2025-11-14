@@ -158,20 +158,29 @@ export async function compileTheme(
           // Custom importer for local theme files
           // Handles bare imports like "marp_default" in the same directory
           findFileUrl(url: string): URL | null {
+            console.log(`[theme-compiler] DEBUG: Custom importer called with url: "${url}"`);
+
             // Only handle local, relative imports without protocol
             if (!url.startsWith('~') && !url.startsWith('/') && !url.includes(':')) {
               // Try to resolve as .scss file in the same directory
               const scssPath = `${themeDir}/${url}.scss`;
+              console.log(`[theme-compiler] DEBUG: Trying to resolve: ${scssPath}`);
+              console.log(`[theme-compiler] DEBUG: File exists? ${existsSync(scssPath)}`);
+
               try {
                 // Check if file exists by attempting to read
                 readFileSync(scssPath);
-                return pathToFileURL(scssPath);
-              } catch {
+                const fileUrl = pathToFileURL(scssPath);
+                console.log(`[theme-compiler] DEBUG: Resolved to: ${fileUrl.href}`);
+                return fileUrl;
+              } catch (error) {
                 // File doesn't exist, let Sass handle it
+                console.log(`[theme-compiler] DEBUG: Failed to read file: ${error instanceof Error ? error.message : String(error)}`);
                 return null;
               }
             }
 
+            console.log(`[theme-compiler] DEBUG: Skipping url (has protocol or starts with ~ or /)`);
             return null;
           },
         },
