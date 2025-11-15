@@ -352,15 +352,21 @@ export function createViteMarpPlugin(
     async transform(code: string, id: string) {
       if (!isMarpFile(id)) return;
 
+      console.log(`[DEBUG-TRANSFORM] START: ${id}`);
+
       // Validate input parameters
       if (!code || typeof code !== 'string') {
         logger?.error(`[astro-marp] Invalid code input for ${id}`);
         return;
       }
 
+      console.log(`[DEBUG-TRANSFORM] Calling prepareContent for ${id}`);
+
       try {
         // Parse and prepare content
         const { parsed, effectiveTheme } = await prepareContent(code, config, logger);
+
+        console.log(`[DEBUG-TRANSFORM] prepareContent completed for ${id}`);
 
         // Process images
         const { images, processedMarkdown, imageImports } = await processImages(code, id, logger);
