@@ -33,6 +33,10 @@ interface ProcessedAsset {
 // Asset tracking for build summary
 const processedAssets = new Map<string, Array<ProcessedAsset>>();
 
+// Cache Bespoke.js content at module level (read once, reuse for all transforms)
+const bespokeJsPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'bespoke.js');
+const bespokeJsContent = existsSync(bespokeJsPath) ? readFileSync(bespokeJsPath, 'utf-8') : '';
+
 export function getProcessedAssets() {
   return processedAssets;
 }
@@ -430,9 +434,7 @@ export function createViteMarpPlugin(
             ).join('\n')
           : '';
 
-        // Load Bespoke.js script from assets
-        const bespokeJsPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'bespoke.js');
-        const bespokeJsContent = readFileSync(bespokeJsPath, 'utf-8');
+        // Note: bespokeJsContent is loaded at module level (cached)
 
         // Generate component with ESM imports and getImage() optimization
         const componentCode = `
