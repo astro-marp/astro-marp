@@ -144,6 +144,9 @@ export async function compileTheme(
       }
     }
 
+    console.log(`[theme-compiler] DEBUG: entryPointDir for NodePackageImporter: ${entryPointDir}`);
+    console.log(`[theme-compiler] DEBUG: github-markdown-css exists? ${existsSync(entryPointDir + '/node_modules/github-markdown-css')}`);
+
     const result = sass.compile(themePath, {
       style: outputStyle,
       sourceMap: sourceMap,
