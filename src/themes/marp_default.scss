@@ -11,8 +11,7 @@
  * @size 4:3 960px 720px
  */
 
-@use 'sass:meta';
-@include meta.load-css('pkg:github-markdown-css/github-markdown.css');
+@import url('https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.css');
 
 h1 {
   border-bottom: none;
