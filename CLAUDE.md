@@ -617,7 +617,58 @@ const { Content } = await presentation.render();
 <Content />  <!-- No layout wrapper -->
 ```
 
-### 5. Mermaid Diagrams Not Rendering
+### 5. Production Deployment - Critical Lessons Learned
+
+**Context**: When deploying to production (npm package from GitHub), several critical issues were discovered and fixed. This section documents lessons learned to prevent future regressions.
+
+#### Issue: Theme Compilation Failures in Production
+
+**Symptoms**:
+- ✅ Works perfectly in development
+- ❌ Production: "Can't find stylesheet to import"
+- ❌ Or: Presentations render as plain markdown instead of slides
+
+**Root Causes Fixed** (See `specification/10-marp-default-base-theme/BUGFIX_PRODUCTION_THEME_COMPILATION.md`):
+
+1. **Missing git-tracked files** (Bug #1)
+   - `marp_default.scss` created but never committed
+   - File excluded from npm packages installed from GitHub
+   - **Lesson**: Always verify `git ls-files` shows new critical files
+
+2. **External dependencies not available** (Bug #2)
+   - `pkg:github-markdown-css` requires npm resolution
+   - Not installed when package comes from GitHub (not npm)
+   - **Solution**: Bundled as local `_github-markdown.scss` (30KB)
+   - **Lesson**: Bundle critical resources or use explicit peer deps
+
+3. **Theme not applied to renderer** (Bug #3)
+   - Theme compiled successfully but `themeSet.default = undefined`
+   - Used wrong API pattern for marp-core's `themeSet.add()`
+   - **Solution**: Use return value from `add()` directly
+   - **Lesson**: Read library API docs carefully, don't assume
+
+**Testing Checklist for Production Deployments**:
+```bash
+# 1. Verify all critical files are git-tracked
+git ls-files src/themes/ | grep -E '(marp_default|github-markdown)'
+
+# 2. Test npm pack + install in separate project
+npm pack
+cd ../test-project
+npm install ../astro-marp/astro-marp-0.1.0.tgz
+npm run build  # Should succeed without theme errors
+
+# 3. Verify presentations render as slides (not markdown)
+# Check browser output for <section> tags and styling
+```
+
+**Prevention Strategies**:
+- Add CI/CD integration tests with actual package installation
+- Test both npm and GitHub installation methods
+- Verify theme application with assertions, not just compilation
+- Use debug logging to trace critical operations
+
+### 6. Mermaid Diagrams Not Rendering
 **Symptom**: Mermaid diagrams display as plain text instead of rendered diagrams
 
 **Solutions**:
