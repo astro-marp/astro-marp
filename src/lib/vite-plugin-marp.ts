@@ -439,7 +439,6 @@ export function createViteMarpPlugin(
 ${imageImports}
 import { createComponent, render, maybeRenderHead, unescapeHTML } from "astro/runtime/server/index.js";
 import { AstroJSX, jsx } from 'astro/jsx-runtime';
-import { readFileSync } from "node:fs";
 ${images.length > 0 ? "import { getImage } from 'astro:assets';" : ''}
 
 export const name = "MarpComponent";
@@ -455,8 +454,11 @@ export const css = ${JSON.stringify(marpResult.css)};
 // Bespoke.js for slide navigation and interactivity
 const bespokeJs = ${JSON.stringify(bespokeJsContent)};
 
+// Raw markdown source (captured at build time)
+const rawMarkdown = ${JSON.stringify(code)};
+
 export function rawContent() {
-    return readFileSync(file, 'utf-8');
+    return rawMarkdown;
 }
 
 export function compiledContent() {
