@@ -126,23 +126,11 @@ export async function compileTheme(
     const themeDir = dirname(themePath);
     console.log(`[theme-compiler] DEBUG: themeDir: ${themeDir}`);
 
-    // Find package root for NodePackageImporter entry point
-    // NodePackageImporter needs to start from a directory with access to node_modules
-    // In development: /project/src/themes -> use process.cwd()
-    // In production: /project/node_modules/.pnpm/astro-marp@.../node_modules/astro-marp/src/themes
-    //                -> need to find the astro-marp package root
-    let entryPointDir = process.cwd();
-
-    // Check if we're in node_modules (production)
-    if (themePath.includes('node_modules')) {
-      // Extract package root from path like:
-      // .../node_modules/.pnpm/astro-marp@.../node_modules/astro-marp/src/themes/am_blue.scss
-      // -> .../node_modules/.pnpm/astro-marp@.../node_modules/astro-marp
-      const match = themePath.match(/(.*node_modules[/\\]astro-marp)/);
-      if (match) {
-        entryPointDir = match[1];
-      }
-    }
+    // NodePackageImporter entry point: Use consuming project root
+    // In pnpm, all dependencies are flattened in the consuming project's node_modules,
+    // not in the package's own node_modules. NodePackageImporter needs to start from
+    // the consuming project root to find all dependencies.
+    const entryPointDir = process.cwd();
 
     console.log(`[theme-compiler] DEBUG: entryPointDir for NodePackageImporter: ${entryPointDir}`);
     console.log(`[theme-compiler] DEBUG: github-markdown-css exists? ${existsSync(entryPointDir + '/node_modules/github-markdown-css')}`);
