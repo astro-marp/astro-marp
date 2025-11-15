@@ -11,7 +11,7 @@
  * @size 4:3 960px 720px
  */
 
-@import url('https://cdn.jsdelivr.net/npm/github-markdown-css@5/github-markdown.css');
+@use 'github-markdown' as *;
 
 h1 {
   border-bottom: none;
