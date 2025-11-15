@@ -3,9 +3,9 @@ import type { MarpConfig } from '../types.js';
 import { parseMarpFile } from './marp-parser.js';
 import { resolveTheme } from './theme-resolver.js';
 import { renderWithMarpCore, generateSourceHash } from './marp-engine.js';
-import { pathToFileURL } from 'node:url';
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { pathToFileURL, fileURLToPath } from 'node:url';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve, dirname, join } from 'node:path';
 
 // Import rehype dependencies for build-time Mermaid rendering
 // These are optional - only needed if using build-time strategies
@@ -430,6 +430,10 @@ export function createViteMarpPlugin(
             ).join('\n')
           : '';
 
+        // Load Bespoke.js script from assets
+        const bespokeJsPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'bespoke.js');
+        const bespokeJsContent = readFileSync(bespokeJsPath, 'utf-8');
+
         // Generate component with ESM imports and getImage() optimization
         const componentCode = `
 ${imageImports}
@@ -447,6 +451,9 @@ export const url = ${JSON.stringify(pathToFileURL(id).href)};
 // Note: CSS is already embedded in HTML via <style> tags
 // This export is for future extensibility (e.g., CSS extraction)
 export const css = ${JSON.stringify(marpResult.css)};
+
+// Bespoke.js for slide navigation and interactivity
+const bespokeJs = ${JSON.stringify(bespokeJsContent)};
 
 export function rawContent() {
     return readFileSync(file, 'utf-8');
@@ -472,6 +479,9 @@ ${imageOptimizations}
     // Replace image placeholders with optimized URLs
     let processedHtml = compiledContent();
 ${imageReplacements}
+
+    // Append Bespoke.js script for slide interactivity (navigation, transitions, etc.)
+    processedHtml += \`<script>\${bespokeJs}</script>\`;
 
     // Inject Vite HMR client script for browser auto-reload (critical for HMR)
     return render\`\${maybeRenderHead(result)}\${unescapeHTML(processedHtml)}\`;
