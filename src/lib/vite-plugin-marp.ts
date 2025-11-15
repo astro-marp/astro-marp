@@ -33,9 +33,9 @@ interface ProcessedAsset {
 // Asset tracking for build summary
 const processedAssets = new Map<string, Array<ProcessedAsset>>();
 
-// Cache Bespoke.js content at module level (read once, reuse for all transforms)
-const bespokeJsPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'bespoke.js');
-const bespokeJsContent = existsSync(bespokeJsPath) ? readFileSync(bespokeJsPath, 'utf-8') : '';
+// TODO: Re-enable Bespoke.js once we fix the hanging issue
+// const bespokeJsPath = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'bespoke.js');
+// const bespokeJsContent = existsSync(bespokeJsPath) ? readFileSync(bespokeJsPath, 'utf-8') : '';
 
 export function getProcessedAssets() {
   return processedAssets;
@@ -453,9 +453,6 @@ export const url = ${JSON.stringify(pathToFileURL(id).href)};
 // This export is for future extensibility (e.g., CSS extraction)
 export const css = ${JSON.stringify(marpResult.css)};
 
-// Bespoke.js for slide navigation and interactivity
-const bespokeJs = ${JSON.stringify(bespokeJsContent)};
-
 // Raw markdown source (captured at build time)
 const rawMarkdown = ${JSON.stringify(code)};
 
@@ -484,8 +481,8 @@ ${imageOptimizations}
     let processedHtml = compiledContent();
 ${imageReplacements}
 
-    // Append Bespoke.js script for slide interactivity (navigation, transitions, etc.)
-    processedHtml += \`<script>\${bespokeJs}</script>\`;
+    // TODO: Re-enable Bespoke.js once we fix the hanging issue
+    // processedHtml += \`<script>\${bespokeJs}</script>\`;
 
     // Inject Vite HMR client script for browser auto-reload (critical for HMR)
     return render\`\${maybeRenderHead(result)}\${unescapeHTML(processedHtml)}\`;
