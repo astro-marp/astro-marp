@@ -141,12 +141,15 @@ export async function renderWithMarpCore(
         }
 
         // Add compiled CSS to Marp's theme set
-        // Use a unique theme name based on the file path
-        const themeName = `custom-${createHash('md5').update(theme).digest('hex').substring(0, 8)}`;
-        marp.themeSet.add(themeResult.css);
+        // themeSet.add() returns the created Theme instance with name property
+        const addedTheme = marp.themeSet.add(themeResult.css);
 
-        // Set the theme as default
-        marp.themeSet.default = marp.themeSet.get(themeName);
+        // Set the added theme as default
+        marp.themeSet.default = addedTheme;
+
+        if (debug) {
+          console.log(`[marp-engine] Theme "${addedTheme.name}" set as default`);
+        }
       } catch (themeError) {
         if (debug) {
           console.error(`[marp-engine] Theme compilation failed:`, themeError);
