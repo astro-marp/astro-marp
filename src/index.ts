@@ -1,6 +1,6 @@
 import type { AstroIntegration } from 'astro';
 import type { MarpConfig } from './types.js';
-import { resolveTheme, validateTheme } from './lib/theme-resolver.js';
+import { resolveTheme, validateTheme, formatThemeName } from './lib/theme-resolver.js';
 import { createViteMarpPlugin } from './lib/vite-plugin-marp.js';
 
 // Non-public API types (following astro-typst pattern)
@@ -105,14 +105,14 @@ export function marp(userConfig: MarpConfig = {}): AstroIntegration {
 
         // Validate theme at setup time
         if (!validateTheme(config.defaultTheme)) {
-          logger.warn(`Theme "${config.defaultTheme}" not found, using "am_blue"`);
+          logger.warn(`Theme "${formatThemeName(config.defaultTheme)}" not found, using "am blue"`);
           config.defaultTheme = 'am_blue';
         }
 
         // Register renderer for .marp files (enables src/pages/ routing)
         addRenderer({
           name: 'astro:jsx',
-          serverEntrypoint: new URL('../dist/renderer/index.js', import.meta.url),
+          serverEntrypoint: new URL('./renderer/index.js', import.meta.url),
         });
         if (config.debug) {
           logger.info('Registered Marp renderer');
