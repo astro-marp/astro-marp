@@ -1,0 +1,204 @@
+---
+/**
+ * Example Astro Layout for Marp Presentations
+ *
+ * This layout demonstrates how to use the new Slides component
+ * to inject Marp slide content into a custom Astro layout.
+ *
+ * Usage in src/pages/presentations/[...slug].astro:
+ *
+ * ---
+ * import { getCollection } from 'astro:content';
+ * import PresentationLayout from '../../layouts/PresentationLayout.astro';
+ *
+ * export async function getStaticPaths() {
+ *   const presentations = await getCollection('presentation');
+ *   return presentations.map((presentation) => ({
+ *     params: { slug: presentation.slug },
+ *     props: { presentation },
+ *   }));
+ * }
+ *
+ * const { presentation } = Astro.props;
+ * const { Slides, MarpStyles } = await presentation.render();
+ * ---
+ *
+ * <PresentationLayout frontmatter={presentation.data}>
+ *     <Slides />
+ *     <MarpStyles slot="head" />
+ * </PresentationLayout>
+ */
+
+interface Props {
+    frontmatter: {
+        title?: string;
+        author?: string;
+        date?: string;
+        [key: string]: unknown;
+    };
+}
+
+const { frontmatter } = Astro.props;
+const title = frontmatter.title || 'Presentation';
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content={`Presentation: ${title}`}>
+    <title>{title}</title>
+
+    <!-- Inject Marp styles (passed via slot from the page) -->
+    <slot name="head" />
+
+    <!-- Custom presentation styles -->
+    <style>
+        /* Reset some default Marp styles if needed */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Custom header bar */
+        .presentation-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+            color: white;
+            padding: 1rem 2rem;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        /* Show header on hover or focus */
+        body:hover .presentation-header,
+        body:focus-within .presentation-header {
+            opacity: 1;
+        }
+
+        .presentation-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .presentation-meta {
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        /* Custom footer with navigation hints */
+        .presentation-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+            color: white;
+            padding: 1rem 2rem;
+            z-index: 1000;
+            text-align: center;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 0.875rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        body:hover .presentation-footer,
+        body:focus-within .presentation-footer {
+            opacity: 1;
+        }
+
+        /* Print styles - hide custom UI when printing */
+        @media print {
+            .presentation-header,
+            .presentation-footer {
+                display: none !important;
+            }
+        }
+
+        /* Keyboard shortcut indicator */
+        .keyboard-hint {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-size: 0.75rem;
+            margin: 0 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom header (fades in on hover) -->
+    <div class="presentation-header">
+        <h1>{title}</h1>
+        <div class="presentation-meta">
+            {frontmatter.author && <span>by {frontmatter.author}</span>}
+            {frontmatter.date && <span> • {frontmatter.date}</span>}
+        </div>
+    </div>
+
+    <!-- Marp slides content -->
+    <slot />
+
+    <!-- Custom footer with navigation hints (fades in on hover) -->
+    <div class="presentation-footer">
+        <p>
+            Use <span class="keyboard-hint">←</span> <span class="keyboard-hint">→</span> to navigate
+            • <span class="keyboard-hint">F</span> for fullscreen
+            • <span class="keyboard-hint">ESC</span> to exit
+        </p>
+    </div>
+
+    <!-- Optional: Add custom JavaScript for enhanced features -->
+    <script>
+        // Add fullscreen toggle on 'f' key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'f' || e.key === 'F') {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        // Track slide changes (optional analytics)
+        let currentSlide = 0;
+        const observer = new MutationObserver(() => {
+            const activeSlide = document.querySelector('section.active');
+            if (activeSlide) {
+                const slideIndex = Array.from(document.querySelectorAll('section')).indexOf(activeSlide);
+                if (slideIndex !== currentSlide) {
+                    currentSlide = slideIndex;
+                    console.log(`Navigated to slide ${currentSlide + 1}`);
+                    // You can add analytics tracking here
+                }
+            }
+        });
+
+        // Start observing slide changes
+        const marpContainer = document.getElementById('marp');
+        if (marpContainer) {
+            observer.observe(marpContainer, {
+                attributes: true,
+                subtree: true,
+                attributeFilter: ['class']
+            });
+        }
+    </script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import type { MarpConfig } from '../types.js';
 import { parseMarpFile } from './marp-parser.js';
 import { resolveTheme } from './theme-resolver.js';
 import { runMarpCli, generateSourceHash } from './marp-runner.js';
+import { parseMarpHtml } from './html-parser.js';
 import { pathToFileURL } from 'node:url';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -403,6 +404,9 @@ export function createViteMarpPlugin(
         // Use the processed HTML (either from Marp CLI or after rehype processing)
         const finalHtml = processedHtml;
 
+        // Parse Marp HTML to extract slides, styles, and SVG defs
+        const parsedHtml = parseMarpHtml(finalHtml);
+
         // Generate getImage() calls for optimization
         const imageOptimizations = images.length > 0
           ? images.map(img =>
@@ -438,10 +442,23 @@ export function compiledContent() {
     return ${JSON.stringify(finalHtml)};
 }
 
+export function getSlides() {
+    return ${JSON.stringify(parsedHtml.slidesHtml)};
+}
+
+export function getStyles() {
+    return ${JSON.stringify(parsedHtml.styles)};
+}
+
+export function getSvgDefs() {
+    return ${JSON.stringify(parsedHtml.svgDefs)};
+}
+
 export function getHeadings() {
     return [];
 }
 
+// Main Content component - renders full HTML for backward compatibility
 export const Content = createComponent(async (result, _props, slots) => {
     const { layout, ...content } = frontmatter;
     const slot = await slots?.default?.();
@@ -457,6 +474,27 @@ ${imageReplacements}
 
     // Inject Vite HMR client script for browser auto-reload (critical for HMR)
     return render\`\${maybeRenderHead(result)}\${unescapeHTML(processedHtml)}\`;
+});
+
+// Slides component - renders only slide content for use in layouts
+export const Slides = createComponent(async (result, _props, slots) => {
+    // Optimize images
+${imageOptimizations}
+
+    // Get slide content and apply image replacements
+    let slidesHtml = getSlides();
+${imageReplacements ? imageReplacements.replace(/processedHtml/g, 'slidesHtml') : ''}
+
+    // Return just the slides content (no head injection)
+    return render\`\${unescapeHTML(slidesHtml)}\`;
+});
+
+// Helper component to inject styles in <head>
+export const MarpStyles = createComponent(async (result, _props, slots) => {
+    const styles = getStyles();
+    const svgDefs = getSvgDefs();
+
+    return render\`<style>\${unescapeHTML(styles)}</style>\${unescapeHTML(svgDefs)}\`;
 });
 
 export default Content;
