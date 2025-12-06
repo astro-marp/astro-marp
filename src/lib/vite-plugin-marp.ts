@@ -367,6 +367,11 @@ export function createViteMarpPlugin(
         // Apply server-side Mermaid rendering using rehype-mermaid
         // This happens AFTER Marp CLI execution
         let processedHtml = marpResult.html;
+
+        // Fix: Add is:inline to all script tags to prevent Astro from processing them (e.g. bespoke.js)
+        // This avoids "document is not defined" errors during build when Astro tries to process client-side scripts
+        processedHtml = processedHtml.replace(/<script([^>]*)>/g, '<script$1 is:inline>');
+
         const mermaidStrategy = config.mermaidStrategy || 'inline-svg';
 
         if (config.enableMermaid !== false) {
@@ -406,15 +411,15 @@ export function createViteMarpPlugin(
         // Generate getImage() calls for optimization
         const imageOptimizations = images.length > 0
           ? images.map(img =>
-              `  const optimized${img.index} = await getImage({ src: image${img.index}, format: 'webp', quality: 80 });`
-            ).join('\n')
+            `  const optimized${img.index} = await getImage({ src: image${img.index}, format: 'webp', quality: 80 });`
+          ).join('\n')
           : '';
 
         // Generate runtime replacement code for image placeholders
         const imageReplacements = images.length > 0
           ? images.map(img =>
-              `  processedHtml = processedHtml.replace('__MARP_IMAGE_${img.index}__', optimized${img.index}.src);`
-            ).join('\n')
+            `  processedHtml = processedHtml.replace('__MARP_IMAGE_${img.index}__', optimized${img.index}.src);`
+          ).join('\n')
           : '';
 
         // Generate component with ESM imports and getImage() optimization
