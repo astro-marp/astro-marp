@@ -1,6 +1,6 @@
 {
   "name": "astro-marp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Astro integration for Marp markdown presentations with content collections support",
   "type": "module",
   "main": "./dist/index.js",
@@ -29,16 +29,17 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint src",
-    "test": "echo \"Test via test-astro-project\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "prepare": "pnpm build",
     "prepublishOnly": "pnpm build"
   },
   "peerDependencies": {
-    "astro": "^5.14.0"
+    "astro": "^6.0.0"
   },
   "dependencies": {
     "@marp-team/marp-cli": "^4.2.3",
-    "astro": "^5.16.1",
     "playwright": "^1.57.0",
     "rehype-mermaid": "^3.0.0",
     "rehype-parse": "^9.0.1",
@@ -50,10 +51,12 @@
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.48.0",
-    "astro": "^5.14.0",
+    "astro": "^v6.0.0-alpha.2",
     "eslint": "^9.39.1",
+    "fast-check": "^3.23.0",
     "typescript": "^5.9.3",
-    "vite": "^7.2.4"
+    "vite": "^7.3.0",
+    "vitest": "^3.2.4"
   },
   "engines": {
     "node": ">=22.0.0"

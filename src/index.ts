@@ -40,7 +40,6 @@ interface AstroIntegrationLogger {
 
 interface SetupHookParams {
   addRenderer: (renderer: RendererConfig) => void;
-  addPageExtension: (extension: string) => void;
   addContentEntryType: (options: ContentEntryTypeOptions) => void;
   updateConfig: (config: AstroConfig) => void;
   logger: AstroIntegrationLogger;
@@ -97,32 +96,29 @@ export function marp(userConfig: MarpConfig = {}): AstroIntegration {
     name: 'astro-marp',
     hooks: {
       'astro:config:setup': (options) => {
-        const { addRenderer, addPageExtension, addContentEntryType, updateConfig, logger, command } = options as unknown as SetupHookParams;
+        const { addRenderer, addContentEntryType, updateConfig, logger, command } = options as unknown as SetupHookParams;
 
         if (config.debug) {
-          logger.info('Setting up Marp integration...');
+          logger.info('[astro-marp] Setting up Marp integration...');
         }
 
         // Validate theme at setup time
         if (!validateTheme(config.defaultTheme)) {
-          logger.warn(`Theme "${config.defaultTheme}" not found, using "am_blue"`);
+          logger.warn(`[astro-marp] Theme "${config.defaultTheme}" not found, using "am_blue"`);
           config.defaultTheme = 'am_blue';
         }
 
-        // Register renderer for .marp files (enables src/pages/ routing)
+        // Register renderer for .marp files
         addRenderer({
           name: 'astro:jsx',
           serverEntrypoint: new URL('../dist/renderer/index.js', import.meta.url),
         });
         if (config.debug) {
-          logger.info('Registered Marp renderer');
+          logger.info('[astro-marp] Registered Marp renderer');
         }
 
-        // Register page extension (enables src/pages/ routing)
-        addPageExtension('.marp');
-        if (config.debug) {
-          logger.info('Registered .marp page extension');
-        }
+        // Note: addPageExtension is removed in Astro 6
+        // .marp files are routed via content collections with glob loader
 
         // Add content entry type for content collections
         addContentEntryType({
